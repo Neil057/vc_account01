@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="現代深色個人記帳 Web App，支援即時收支統計、Chart.js 類別圓餅圖、CSV 匯出與 localStorage 儲存。">
+  <title>Lumina Ledger | 現代個人記帳</title>
+  
+  <!-- Google Fonts: Outfit & Noto Sans TC -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Ambient background glow effects -->
+  <div class="glow-sphere sphere-1"></div>
+  <div class="glow-sphere sphere-2"></div>
+  <div class="glow-sphere sphere-3"></div>
+
+  <div class="app-container">
+    <!-- Top Header -->
+    <header class="app-header glass-card">
+      <div class="header-brand">
+        <div class="brand-icon">
+          <i data-lucide="wallet-cards"></i>
+        </div>
+        <div class="brand-text">
+          <h1>Lumina Ledger</h1>
+          <span class="brand-subtitle">個人智能收支記帳</span>
+        </div>
+      </div>
+
+      <!-- Month Selector & Controls -->
+      <div class="header-controls">
+        <div class="month-selector glass-pill">
+          <button id="prevMonthBtn" class="icon-btn" title="上個月" aria-label="上個月">
+            <i data-lucide="chevron-left"></i>
+          </button>
+          <div class="current-month-display" id="currentMonthText">2026 年 8 月</div>
+          <button id="nextMonthBtn" class="icon-btn" title="下個月" aria-label="下個月">
+            <i data-lucide="chevron-right"></i>
+          </button>
+          <button id="todayMonthBtn" class="btn-today" title="回到本月">本月</button>
+        </div>
+
+        <div class="action-buttons">
+          <button id="exportCsvBtn" class="btn btn-secondary" title="匯出本月或全部 CSV">
+            <i data-lucide="download"></i>
+            <span>匯出 CSV</span>
+          </button>
+          <button id="openAddModalBtn" class="btn btn-primary" title="新增記帳">
+            <i data-lucide="plus-circle"></i>
+            <span>記一筆</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Monthly Summary Overview Grid -->
+    <section class="overview-grid" aria-label="本月收支概覽">
+      <!-- Income Card -->
+      <div class="stat-card glass-card card-income">
+        <div class="stat-header">
+          <span class="stat-title">本月總收入</span>
+          <div class="stat-icon-badge income-badge">
+            <i data-lucide="trending-up"></i>
+          </div>
+        </div>
+        <div class="stat-body">
+          <div class="stat-amount" id="totalIncome">$0</div>
+          <div class="stat-subtext" id="incomeCount">共 0 筆收入</div>
+        </div>
+      </div>
+
+      <!-- Expense Card -->
+      <div class="stat-card glass-card card-expense">
+        <div class="stat-header">
+          <span class="stat-title">本月總支出</span>
+          <div class="stat-icon-badge expense-badge">
+            <i data-lucide="trending-down"></i>
+          </div>
+        </div>
+        <div class="stat-body">
+          <div class="stat-amount" id="totalExpense">$0</div>
+          <div class="stat-subtext" id="expenseCount">共 0 筆支出</div>
+        </div>
+      </div>
+
+      <!-- Balance Card -->
+      <div class="stat-card glass-card card-balance">
+        <div class="stat-header">
+          <span class="stat-title">本月淨結餘</span>
+          <div class="stat-icon-badge balance-badge">
+            <i data-lucide="scale"></i>
+          </div>
+        </div>
+        <div class="stat-body">
+          <div class="stat-amount" id="netBalance">$0</div>
+          <div class="stat-subtext" id="balanceStatus">收支平衡</div>
+        </div>
+      </div>
+
+      <!-- Transaction Count & Quick Info Card -->
+      <div class="stat-card glass-card card-activity">
+        <div class="stat-header">
+          <span class="stat-title">本月交易筆數</span>
+          <div class="stat-icon-badge activity-badge">
+            <i data-lucide="receipt"></i>
+          </div>
+        </div>
+        <div class="stat-body">
+          <div class="stat-amount" id="totalTransactionsCount">0 <span class="unit">筆</span></div>
+          <div class="stat-subtext" id="avgExpenseText">平均每日支出 $0</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Content Layout (2-Columns on Desktop, 1-Column on Mobile) -->
+    <main class="main-layout">
+      <!-- Left Column: Chart & Category Breakdown -->
+      <section class="dashboard-sidebar">
+        <!-- Chart Card -->
+        <div class="glass-card chart-card">
+          <div class="card-header">
+            <div class="header-title-group">
+              <i data-lucide="pie-chart" class="section-icon"></i>
+              <h2>支出類別佔比</h2>
+            </div>
+            <span class="badge" id="chartPeriodBadge">本月</span>
+          </div>
+
+          <div class="chart-wrapper">
+            <div class="chart-container">
+              <canvas id="categoryChart" width="280" height="280"></canvas>
+              <!-- Center stats overlay -->
+              <div class="chart-center-overlay" id="chartCenterOverlay">
+                <span class="overlay-label">總支出</span>
+                <span class="overlay-val" id="chartCenterTotal">$0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Category Legend / Progress Breakdown List -->
+          <div class="category-breakdown-list" id="categoryBreakdownList">
+            <!-- Dynamic categories will be injected here -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Transaction Records Table & Search/Filter Controls -->
+      <section class="dashboard-content">
+        <div class="glass-card table-card">
+          <div class="table-card-header">
+            <div class="header-title-group">
+              <i data-lucide="list-ordered" class="section-icon"></i>
+              <h2>收支明細列表</h2>
+              <span class="badge-count" id="tableFilteredCount">0 筆記錄</span>
+            </div>
+
+            <!-- Table Tools (Search & Filter) -->
+            <div class="table-toolbar">
+              <div class="search-box glass-pill">
+                <i data-lucide="search" class="search-icon"></i>
+                <input type="text" id="searchInput" placeholder="搜尋備註、類別或金額..." aria-label="搜尋交易">
+                <button id="clearSearchBtn" class="clear-search-btn" title="清除搜尋" style="display:none;">
+                  <i data-lucide="x"></i>
+                </button>
+              </div>
+
+              <!-- Filter Selector -->
+              <div class="filter-dropdown-wrapper">
+                <select id="categoryFilter" class="select-input glass-pill" aria-label="分類篩選">
+                  <option value="ALL">全部類別</option>
+                  <option value="餐飲">🍔 餐飲</option>
+                  <option value="交通">🚗 交通</option>
+                  <option value="娛樂">🎮 娛樂</option>
+                  <option value="購物">🛍️ 購物</option>
+                  <option value="居家">🏠 居家</option>
+                  <option value="薪資">💰 薪資</option>
+                  <option value="獎金">🎁 獎金</option>
+                  <option value="投資">📈 投資</option>
+                  <option value="兼職">💼 兼職</option>
+                  <option value="其他">📦 其他</option>
+                </select>
+              </div>
+
+              <div class="filter-dropdown-wrapper">
+                <select id="typeFilter" class="select-input glass-pill" aria-label="類型篩選">
+                  <option value="ALL">全部收支</option>
+                  <option value="expense">支出 (-)</option>
+                  <option value="income">收入 (+)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Transaction Table Container -->
+          <div class="table-responsive">
+            <table class="transaction-table" id="transactionTable">
+              <thead>
+                <tr>
+                  <th class="th-date">日期</th>
+                  <th class="th-type">類型</th>
+                  <th class="th-category">類別</th>
+                  <th class="th-note">備註說明</th>
+                  <th class="th-amount text-right">金額 (NT$)</th>
+                  <th class="th-actions text-center">操作</th>
+                </tr>
+              </thead>
+              <tbody id="transactionTableBody">
+                <!-- Transactions rows injected dynamically -->
+              </tbody>
+            </table>
+
+            <!-- Empty State -->
+            <div class="empty-state" id="emptyState" style="display: none;">
+              <div class="empty-icon-wrap">
+                <i data-lucide="inbox"></i>
+              </div>
+              <h3>這個月份還沒有記帳記錄</h3>
+              <p>點擊上方「記一筆」按鈕開始記錄您的第一筆收支吧！</p>
+              <button class="btn btn-primary btn-sm" id="emptyAddBtn">
+                <i data-lucide="plus"></i> 立即新增
+              </button>
+            </div>
+          </div>
+
+          <!-- Table Footer / Quick Reset / Sample Data -->
+          <div class="table-card-footer">
+            <div class="footer-stats" id="tableSummaryFooter">
+              顯示本月收支資料
+            </div>
+            <div class="footer-actions">
+              <button id="loadSampleDataBtn" class="btn-text" title="填入示範資料">
+                <i data-lucide="sparkles"></i> 匯入示範資料
+              </button>
+              <button id="clearMonthDataBtn" class="btn-text text-danger" title="清空本月記錄">
+                <i data-lucide="trash-2"></i> 清空本月
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- App Footer -->
+    <footer class="app-footer">
+      <p>Lumina Ledger &copy; 2026 • 響應式現代深色記帳 • 資料安全保存在本機 localStorage</p>
+    </footer>
+  </div>
+
+  <!-- Add/Edit Transaction Modal -->
+  <div class="modal-backdrop" id="transactionModal" aria-hidden="true" role="dialog">
+    <div class="modal-content glass-card">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="modal-icon-badge" id="modalIconBadge">
+            <i data-lucide="plus-circle"></i>
+          </div>
+          <h2 id="modalTitle">新增記帳記錄</h2>
+        </div>
+        <button class="modal-close-btn" id="closeModalBtn" aria-label="關閉視窗">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <form id="transactionForm" novalidate>
+        <input type="hidden" id="editTransactionId" value="">
+
+        <!-- Transaction Type Switcher (Expense / Income) -->
+        <div class="form-group">
+          <label class="form-label">記帳類型</label>
+          <div class="type-segmented-control">
+            <label class="type-segment expense-segment active">
+              <input type="radio" name="txType" value="expense" checked>
+              <i data-lucide="arrow-down-circle"></i>
+              <span>支出</span>
+            </label>
+            <label class="type-segment income-segment">
+              <input type="radio" name="txType" value="income">
+              <i data-lucide="arrow-up-circle"></i>
+              <span>收入</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Date Input -->
+        <div class="form-group">
+          <label for="txDate" class="form-label">
+            <i data-lucide="calendar"></i> 交易日期
+          </label>
+          <input type="date" id="txDate" class="form-input" required>
+        </div>
+
+        <!-- Category Grid / Selector -->
+        <div class="form-group">
+          <label class="form-label">
+            <i data-lucide="tag"></i> 選擇類別
+          </label>
+          
+          <!-- Quick Category Badges for Expense -->
+          <div class="category-pill-grid" id="expenseCategoryGrid">
+            <button type="button" class="category-pill active" data-category="餐飲">
+              <span class="pill-icon">🍔</span> 餐飲
+            </button>
+            <button type="button" class="category-pill" data-category="交通">
+              <span class="pill-icon">🚗</span> 交通
+            </button>
+            <button type="button" class="category-pill" data-category="娛樂">
+              <span class="pill-icon">🎮</span> 娛樂
+            </button>
+            <button type="button" class="category-pill" data-category="購物">
+              <span class="pill-icon">🛍️</span> 購物
+            </button>
+            <button type="button" class="category-pill" data-category="居家">
+              <span class="pill-icon">🏠</span> 居家
+            </button>
+            <button type="button" class="category-pill" data-category="其他">
+              <span class="pill-icon">📦</span> 其他
+            </button>
+          </div>
+
+          <!-- Quick Category Badges for Income (hidden by default) -->
+          <div class="category-pill-grid" id="incomeCategoryGrid" style="display: none;">
+            <button type="button" class="category-pill active" data-category="薪資">
+              <span class="pill-icon">💰</span> 薪資
+            </button>
+            <button type="button" class="category-pill" data-category="獎金">
+              <span class="pill-icon">🎁</span> 獎金
+            </button>
+            <button type="button" class="category-pill" data-category="投資">
+              <span class="pill-icon">📈</span> 投資
+            </button>
+            <button type="button" class="category-pill" data-category="兼職">
+              <span class="pill-icon">💼</span> 兼職
+            </button>
+            <button type="button" class="category-pill" data-category="其他">
+              <span class="pill-icon">📦</span> 其他
+            </button>
+          </div>
+
+          <!-- Hidden input storing active category value -->
+          <input type="hidden" id="txCategory" value="餐飲" required>
+        </div>
+
+        <!-- Amount Input -->
+        <div class="form-group">
+          <label for="txAmount" class="form-label">
+            <i data-lucide="dollar-sign"></i> 金額 (NT$)
+          </label>
+          <div class="input-with-prefix">
+            <span class="input-currency-prefix">$</span>
+            <input type="number" id="txAmount" class="form-input amount-input" placeholder="0" min="1" step="any" required>
+          </div>
+          <!-- Quick Amount Buttons -->
+          <div class="quick-amounts">
+            <button type="button" class="quick-amt-btn" data-amt="50">+50</button>
+            <button type="button" class="quick-amt-btn" data-amt="100">+100</button>
+            <button type="button" class="quick-amt-btn" data-amt="500">+500</button>
+            <button type="button" class="quick-amt-btn" data-amt="1000">+1,000</button>
+          </div>
+        </div>
+
+        <!-- Note Input -->
+        <div class="form-group">
+          <label for="txNote" class="form-label">
+            <i data-lucide="file-text"></i> 備註說明 (選填)
+          </label>
+          <input type="text" id="txNote" class="form-input" placeholder="例如：星巴克拿鐵、捷運加值、電影票...">
+        </div>
+
+        <!-- Modal Actions -->
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="cancelModalBtn">取消</button>
+          <button type="submit" class="btn btn-primary" id="saveTransactionBtn">
+            <i data-lucide="check"></i>
+            <span>儲存記錄</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal-backdrop" id="confirmModal" aria-hidden="true" role="dialog">
+    <div class="modal-content glass-card modal-confirm">
+      <div class="confirm-icon-wrap">
+        <i data-lucide="alert-triangle"></i>
+      </div>
+      <h2 id="confirmTitle">確認刪除？</h2>
+      <p id="confirmMessage">確定要刪除這筆記帳記錄嗎？此動作將無法復原。</p>
+      <div class="modal-footer justify-center">
+        <button type="button" class="btn btn-secondary" id="cancelConfirmBtn">取消</button>
+        <button type="button" class="btn btn-danger" id="executeConfirmBtn">確定刪除</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <!-- Custom JavaScript -->
+  <script src="app.js"></script>
+</body>
+</html>
