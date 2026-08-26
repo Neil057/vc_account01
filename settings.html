@@ -98,9 +98,9 @@
         <span class="settings-row-icon">📥</span>
         <div class="settings-row-info">
           <div class="settings-row-label">匯出所有記錄</div>
-          <div class="settings-row-hint">下載 CSV 檔案，可用 Excel 開啟</div>
+          <div class="settings-row-hint">下載完整 JSON 檔案（包含表頭、品項明細與匯率）</div>
         </div>
-        <button class="btn btn-secondary btn-sm" id="btnExport">匯出</button>
+        <button class="btn btn-secondary btn-sm" id="btnExport">匯出 JSON</button>
       </div>
 
       <div class="settings-row">
@@ -120,7 +120,7 @@
     <div class="danger-zone">
       <div style="font-size:14px;font-weight:600;margin-bottom:6px;">清除所有記帳資料</div>
       <div style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;">
-        這會刪除所有收據記錄，設定不受影響。<br>此操作無法復原，請先匯出 CSV 備份。
+        這會刪除所有收據記錄，設定不受影響。<br>此操作無法復原，請先匯出 JSON 備份。
       </div>
       <button class="btn btn-danger btn-full" id="btnClear">🗑️ 清除所有記錄</button>
     </div>
@@ -151,7 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('saveApiKey').onclick = saveApiKey;
   document.getElementById('saveBudget').onclick  = saveBudget;
   document.getElementById('saveDates').onclick   = saveDates;
-  document.getElementById('btnExport').onclick   = () => Storage.exportCSV();
+  document.getElementById('btnExport').onclick   = () => Storage.exportJSON();
   document.getElementById('btnClear').onclick    = clearData;
 
   // Live exchange rate preview

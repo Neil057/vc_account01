@@ -24,7 +24,14 @@ const Storage = {
   addRecord(record) {
     const records = this.getRecords();
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    const newRec = { ...record, id, createdAt: new Date().toISOString() };
+    const settings = this.getSettings();
+    const rate = record.exchangeRate !== undefined ? record.exchangeRate : (settings.exchangeRate || 0.21);
+    const newRec = {
+      ...record,
+      exchangeRate: rate,
+      id,
+      createdAt: new Date().toISOString()
+    };
     records.unshift(newRec);
     this._save(records);
     return newRec;
@@ -99,69 +106,25 @@ const Storage = {
     return map;
   },
 
-  // ── Export ────────────────────────────────────────────
-  exportCSV() {
+  // ── Export JSON ───────────────────────────────────────
+  exportJSON() {
     const records = this.getRecords();
     if (!records.length) { showToast('沒有資料可以匯出', 'error'); return; }
-    
-    const headers = [
-      '收據日期', '店名(繁中)', '店名(日文)', '收據總金額(JPY)', '收據總金額(TWD)',
-      '品項明細(繁中)', '品項明細(日文)', '數量', '明細金額(JPY)', '明細金額(TWD)',
-      '稅制', '消費類別', '支付方式', '備註'
-    ];
-    
-    const rows = [];
-    records.forEach(r => {
-      if (Array.isArray(r.items) && r.items.length > 0) {
-        r.items.forEach(it => {
-          rows.push([
-            r.date || '',
-            r.storeName || '',
-            r.storeNameJa || '',
-            r.amountJPY || 0,
-            r.amountTWD || 0,
-            it.nameZh || '',
-            it.nameJa || '',
-            it.qty || 1,
-            it.amountJPY || 0,
-            it.amountTWD || 0,
-            r.taxType || '',
-            r.category || '',
-            r.paymentMethod || '',
-            r.notes || ''
-          ]);
-        });
-      } else {
-        rows.push([
-          r.date || '',
-          r.storeName || '',
-          r.storeNameJa || '',
-          r.amountJPY || 0,
-          r.amountTWD || 0,
-          typeof r.items === 'string' ? r.items : (r.itemsSummary || ''),
-          r.itemsJa || '',
-          1,
-          r.amountJPY || 0,
-          r.amountTWD || 0,
-          r.taxType || '',
-          r.category || '',
-          r.paymentMethod || '',
-          r.notes || ''
-        ]);
-      }
-    });
 
-    const csv = [headers, ...rows]
-      .map(row => row.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))
-      .join('\n');
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const jsonStr = JSON.stringify(records, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8;' });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     a.href = url;
-    a.download = `japan-receipts-detail-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `japan-receipts-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    showToast('✅ 明細 CSV 已下載', 'success');
+    showToast('✅ JSON 資料已下載', 'success');
+  },
+
+  // 向後相容保留
+  exportCSV() {
+    this.exportJSON();
   },
 
   clearAll() {

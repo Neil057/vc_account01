@@ -175,6 +175,7 @@ function save() {
     itemsSummary:  itemText,
     amountJPY,
     amountTWD,
+    exchangeRate:  settings.exchangeRate || 0.21,
     taxType:       document.getElementById('fTaxType').value,
     category:      document.getElementById('fCategory').value,
     paymentMethod: document.getElementById('fPayment').value,
