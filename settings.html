@@ -61,12 +61,32 @@
         </div>
       </div>
 
-      <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:8px;">
-        <div class="settings-row-label">換算匯率（1 日幣 = ? 台幣）</div>
-        <div class="input-wrapper" style="width:100%">
-          <input class="form-input" id="exchangeRate" type="number" min="0" step="0.001" placeholder="例：0.21">
+      <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:10px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+          <div class="settings-row-label" style="margin:0;">換算匯率（1 日幣 = ? 台幣）</div>
+          <a href="https://rate.bot.com.tw/xrt?Lang=zh-TW" target="_blank" rel="noopener" style="font-size:12px;color:var(--primary);font-weight:600;display:flex;align-items:center;gap:3px;" title="查看臺灣銀行牌告匯率官方網頁">
+            🏦 臺灣銀行牌告 ↗
+          </a>
         </div>
-        <div style="font-size:12px;color:var(--text-muted);" id="rateExample">¥1,000 ≈ NT$210</div>
+        <div class="input-wrapper" style="width:100%">
+          <input class="form-input" id="exchangeRate" type="number" min="0" step="0.0001" placeholder="例：0.2000">
+        </div>
+        
+        <!-- BOT Live Rate Suggestion Box -->
+        <div style="background:var(--bg-secondary);border:1px solid var(--border-light);border-radius:var(--r-md);padding:10px 12px;width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:4px;">
+              <span>🏦 臺銀即期賣出建議：</span>
+              <span id="liveBotRateText" style="color:var(--success);font-weight:800;">讀取中...</span>
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;" id="liveBotRateTime">獲取臺灣銀行即時牌告</div>
+          </div>
+          <button type="button" class="btn btn-primary btn-sm" id="btnApplyBotRate" style="padding:6px 12px;font-size:12px;white-space:nowrap;">
+            套用建議值
+          </button>
+        </div>
+
+        <div style="font-size:12px;color:var(--text-muted);" id="rateExample">¥1,000 ≈ NT$200</div>
       </div>
 
     </div>
@@ -137,9 +157,12 @@
 <script src="js/storage.js"></script>
 <script src="js/app.js"></script>
 <script>
+let latestBotRate = null;
+
 document.addEventListener('DOMContentLoaded', () => {
   renderNav('settings');
   loadSettings();
+  loadLiveBotRate();
 
   // API Key toggle
   const keyInput = document.getElementById('apiKey');
@@ -153,11 +176,42 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('saveDates').onclick   = saveDates;
   document.getElementById('btnExport').onclick   = () => Storage.exportJSON();
   document.getElementById('btnClear').onclick    = clearData;
+  document.getElementById('btnApplyBotRate').onclick = applyBotRate;
 
   // Live exchange rate preview
   document.getElementById('exchangeRate').addEventListener('input', updateRatePreview);
   document.getElementById('budget').addEventListener('input', updateBudgetPreview);
 });
+
+async function loadLiveBotRate() {
+  const rateText = document.getElementById('liveBotRateText');
+  const rateTime = document.getElementById('liveBotRateTime');
+  try {
+    const live = await fetchLiveBotExchangeRate();
+    if (live && live.rate) {
+      latestBotRate = live.rate;
+      rateText.textContent = `${live.rate}`;
+      rateTime.textContent = `來源：${live.source}`;
+    } else {
+      rateText.textContent = '暫無法取得';
+    }
+  } catch (e) {
+    rateText.textContent = '0.2000 (預估)';
+  }
+}
+
+function applyBotRate() {
+  if (latestBotRate) {
+    document.getElementById('exchangeRate').value = latestBotRate;
+    updateRatePreview();
+    updateBudgetPreview();
+    Storage.setSetting('exchangeRate', latestBotRate);
+    showToast(`✅ 已套用臺灣銀行即期賣出匯率：${latestBotRate}`, 'success');
+  } else {
+    showToast('正在獲取最新匯率中，請稍候...', 'info');
+    loadLiveBotRate();
+  }
+}
 
 function loadSettings() {
   const s = Storage.getSettings();
@@ -167,7 +221,7 @@ function loadSettings() {
     document.getElementById('apiStatus').style.color = 'var(--success)';
   }
   document.getElementById('budget').value = s.budget || '';
-  document.getElementById('exchangeRate').value = s.exchangeRate || 0.21;
+  document.getElementById('exchangeRate').value = s.exchangeRate || 0.20;
   document.getElementById('tripStart').value = s.tripStartDate || '';
   document.getElementById('tripEnd').value   = s.tripEndDate   || '';
 
@@ -188,7 +242,7 @@ function updateRatePreview() {
 
 function updateBudgetPreview() {
   const budget = parseInt(document.getElementById('budget').value) || 0;
-  const rate   = parseFloat(document.getElementById('exchangeRate').value) || 0.21;
+  const rate   = parseFloat(document.getElementById('exchangeRate').value) || 0.20;
   document.getElementById('budgetTWD').textContent =
     budget > 0 ? Math.round(budget * rate).toLocaleString() : '0';
 }
@@ -210,12 +264,12 @@ function saveBudget() {
   const rate   = parseFloat(document.getElementById('exchangeRate').value) || 0;
 
   if (rate <= 0 || rate > 10) {
-    showToast('請輸入正確的匯率（例：0.21）', 'error'); return;
+    showToast('請輸入正確的匯率（例：0.2000）', 'error'); return;
   }
 
   Storage.setSetting('budget', budget);
   Storage.setSetting('exchangeRate', rate);
-  showToast('✅ 預算設定已儲存', 'success');
+  showToast('✅ 預算與匯率設定已儲存', 'success');
 }
 
 function saveDates() {

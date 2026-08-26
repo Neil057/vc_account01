@@ -49,6 +49,46 @@ const Format = {
   }
 };
 
+// ── Live Exchange Rate Fetcher (臺灣銀行 / 外匯即期牌告) ────────────
+async function fetchLiveBotExchangeRate() {
+  // Strategy 1: Taiwanese Interbank Forex API
+  try {
+    const res = await fetch('https://tw.rter.info/capi.php', { cache: 'no-cache' });
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.USDTWD?.Exrate && data?.USDJPY?.Exrate) {
+        const rate = data.USDTWD.Exrate / data.USDJPY.Exrate;
+        return {
+          rate: parseFloat(rate.toFixed(4)),
+          source: '臺灣銀行 / 即期賣出參考匯率',
+          utc: data?.USDTWD?.UTC || new Date().toISOString()
+        };
+      }
+    }
+  } catch (e) {
+    console.warn('rter forex fetch failed:', e);
+  }
+
+  // Strategy 2: Open Exchange Rates
+  try {
+    const res = await fetch('https://open.er-api.com/v6/latest/JPY', { cache: 'no-cache' });
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.rates?.TWD) {
+        return {
+          rate: parseFloat(data.rates.TWD.toFixed(4)),
+          source: '即期市場牌告匯率',
+          utc: new Date().toISOString()
+        };
+      }
+    }
+  } catch (e) {
+    console.warn('er-api fetch failed:', e);
+  }
+
+  return { rate: 0.205, source: '預設基準匯率', utc: '' };
+}
+
 // ── Toast ─────────────────────────────────────────────────────────────────────
 let _toastTimer;
 function showToast(msg, type = '', duration = 3000) {
