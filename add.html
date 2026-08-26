@@ -159,11 +159,20 @@ function save() {
   const settings  = Storage.getSettings();
   const amountTWD = Math.round(amountJPY * settings.exchangeRate);
 
+  const itemText = document.getElementById('fItems').value.trim();
+  const items = itemText ? [{
+    nameZh: itemText,
+    nameJa: '',
+    amountJPY,
+    amountTWD,
+    qty: 1
+  }] : [];
+
   Storage.addRecord({
     storeName,
     storeNameJa:   '',
-    items:         document.getElementById('fItems').value.trim(),
-    itemsJa:       '',
+    items,
+    itemsSummary:  itemText,
     amountJPY,
     amountTWD,
     taxType:       document.getElementById('fTaxType').value,

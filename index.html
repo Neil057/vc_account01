@@ -147,12 +147,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function renderRow(r) {
   const cat = getCat(r.category);
+  const itemsSummary = Array.isArray(r.items) && r.items.length > 0
+    ? r.items.map(it => it.nameZh).join(', ')
+    : (typeof r.items === 'string' ? r.items : (r.itemsSummary || '—'));
   return `
     <div class="record-row">
       <div class="rec-icon ${cat.cls}">${cat.icon}</div>
       <div class="rec-info">
         <div class="rec-store">${r.storeName || '（未知店名）'}</div>
-        <div class="rec-items">${r.items || '—'}</div>
+        <div class="rec-items">${itemsSummary}</div>
         <div class="rec-meta">${Format.dateShort(r.date)} · ${r.paymentMethod || ''}</div>
       </div>
       <div class="rec-amount">

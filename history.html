@@ -104,18 +104,27 @@ function renderList() {
     `;
   }).join('');
 
+  // Bind accordion click
+  container.querySelectorAll('.history-card').forEach(card => {
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('.history-del')) return;
+      const wrap = card.closest('.history-item-wrap');
+      wrap.classList.toggle('open');
+    });
+  });
+
   // Bind delete buttons
   container.querySelectorAll('.history-del').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
       const id   = btn.dataset.id;
-      const card = document.getElementById('rec-' + id);
+      const wrap = document.getElementById('rec-' + id);
       const confirmed = await confirm2('確定要刪除這筆記錄嗎？');
       if (confirmed) {
         Storage.deleteRecord(id);
-        card.style.transition = 'opacity 0.3s, transform 0.3s';
-        card.style.opacity    = '0';
-        card.style.transform  = 'translateX(20px)';
+        wrap.style.transition = 'opacity 0.3s, transform 0.3s';
+        wrap.style.opacity    = '0';
+        wrap.style.transform  = 'translateX(20px)';
         setTimeout(() => {
           allRecords = Storage.getRecords();
           renderList();
@@ -129,19 +138,91 @@ function renderList() {
 
 function renderCard(r) {
   const cat = getCat(r.category);
+  const itemsList = Array.isArray(r.items) ? r.items : [];
+  const itemsSummary = itemsList.length > 0
+    ? itemsList.map(it => it.nameZh).join(', ')
+    : (typeof r.items === 'string' ? r.items : (r.itemsSummary || '—'));
+
+  // Build items rows for detail table
+  let itemsTableHtml = '';
+  if (itemsList.length > 0) {
+    itemsTableHtml = `
+      <div class="detail-table-title">
+        <span>📋 收據品項明細（${itemsList.length} 項）</span>
+      </div>
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th>品項名稱（中 / 日）</th>
+            <th style="width:36px;text-align:center;">數量</th>
+            <th class="num-col">金額</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsList.map(it => `
+            <tr>
+              <td>
+                <div class="item-zh">${it.nameZh || '商品'}</div>
+                ${it.nameJa ? `<div class="item-ja">${it.nameJa}</div>` : ''}
+              </td>
+              <td style="text-align:center;color:var(--text-secondary);font-size:12px;">×${it.qty || 1}</td>
+              <td class="num-col">
+                <div class="item-jpy">${Format.yen(it.amountJPY)}</div>
+                <div class="item-twd">${Format.twd(it.amountTWD)}</div>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } else {
+    itemsTableHtml = `
+      <div style="padding:10px 0;font-size:13px;color:var(--text-secondary);">
+        品項：${itemsSummary}
+      </div>
+    `;
+  }
+
   return `
-    <div class="history-card fade-up" id="rec-${r.id}">
-      <div class="rec-icon ${cat.cls}">${cat.icon}</div>
-      <div class="rec-info">
-        <div class="rec-store">${r.storeName || '（未知）'}</div>
-        <div class="rec-items">${r.items || '—'}</div>
-        <div class="rec-meta">${r.paymentMethod || ''} · ${r.taxType || ''}</div>
+    <div class="history-item-wrap fade-up" id="rec-${r.id}">
+      <div class="history-card">
+        <div class="rec-icon ${cat.cls}">${cat.icon}</div>
+        <div class="rec-info">
+          <div class="rec-store">${r.storeName || '（未知店名）'}</div>
+          <div class="rec-items">${itemsSummary}</div>
+          <div class="rec-meta">${r.paymentMethod || '現金'} · ${r.taxType || '内税'} · 點擊展開明細 ▾</div>
+        </div>
+        <div class="rec-amount">
+          <div class="rec-jpy">${Format.yen(r.amountJPY)}</div>
+          <div class="rec-twd">${Format.twd(r.amountTWD)}</div>
+        </div>
+        <button class="history-del" data-id="${r.id}" title="刪除">🗑️</button>
+        <span class="history-chevron">▼</span>
       </div>
-      <div class="rec-amount">
-        <div class="rec-jpy">${Format.yen(r.amountJPY)}</div>
-        <div class="rec-twd">${Format.twd(r.amountTWD)}</div>
+
+      <!-- Expandable Detail Panel -->
+      <div class="history-detail-panel">
+        <div class="detail-meta-grid">
+          <div class="detail-meta-item">
+            <span class="detail-meta-label">日文店名</span>
+            <span class="detail-meta-val">${r.storeNameJa || '—'}</span>
+          </div>
+          <div class="detail-meta-item">
+            <span class="detail-meta-label">支付與稅制</span>
+            <span class="detail-meta-val">${r.paymentMethod || '現金'} (${r.taxType || '内税'})</span>
+          </div>
+          <div class="detail-meta-item">
+            <span class="detail-meta-label">消費類別</span>
+            <span class="detail-meta-val">${cat.icon} ${r.category || '其他'}</span>
+          </div>
+          <div class="detail-meta-item">
+            <span class="detail-meta-label">備註</span>
+            <span class="detail-meta-val">${r.notes || '無'}</span>
+          </div>
+        </div>
+
+        ${itemsTableHtml}
       </div>
-      <button class="history-del" data-id="${r.id}" title="刪除">🗑️</button>
     </div>`;
 }
 </script>

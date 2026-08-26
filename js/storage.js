@@ -103,13 +103,54 @@ const Storage = {
   exportCSV() {
     const records = this.getRecords();
     if (!records.length) { showToast('沒有資料可以匯出', 'error'); return; }
-    const headers = ['日期','店名','店名(日文)','品項','品項(日文)','金額(JPY)','金額(TWD)','稅制','類別','支付方式','備註'];
-    const rows = records.map(r => [
-      r.date || '', r.storeName || '', r.storeNameJa || '',
-      r.items || '', r.itemsJa || '',
-      r.amountJPY || 0, r.amountTWD || 0,
-      r.taxType || '', r.category || '', r.paymentMethod || '', r.notes || ''
-    ]);
+    
+    const headers = [
+      '收據日期', '店名(繁中)', '店名(日文)', '收據總金額(JPY)', '收據總金額(TWD)',
+      '品項明細(繁中)', '品項明細(日文)', '數量', '明細金額(JPY)', '明細金額(TWD)',
+      '稅制', '消費類別', '支付方式', '備註'
+    ];
+    
+    const rows = [];
+    records.forEach(r => {
+      if (Array.isArray(r.items) && r.items.length > 0) {
+        r.items.forEach(it => {
+          rows.push([
+            r.date || '',
+            r.storeName || '',
+            r.storeNameJa || '',
+            r.amountJPY || 0,
+            r.amountTWD || 0,
+            it.nameZh || '',
+            it.nameJa || '',
+            it.qty || 1,
+            it.amountJPY || 0,
+            it.amountTWD || 0,
+            r.taxType || '',
+            r.category || '',
+            r.paymentMethod || '',
+            r.notes || ''
+          ]);
+        });
+      } else {
+        rows.push([
+          r.date || '',
+          r.storeName || '',
+          r.storeNameJa || '',
+          r.amountJPY || 0,
+          r.amountTWD || 0,
+          typeof r.items === 'string' ? r.items : (r.itemsSummary || ''),
+          r.itemsJa || '',
+          1,
+          r.amountJPY || 0,
+          r.amountTWD || 0,
+          r.taxType || '',
+          r.category || '',
+          r.paymentMethod || '',
+          r.notes || ''
+        ]);
+      }
+    });
+
     const csv = [headers, ...rows]
       .map(row => row.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))
       .join('\n');
@@ -117,10 +158,10 @@ const Storage = {
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     a.href = url;
-    a.download = `japan-receipts-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `japan-receipts-detail-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    showToast('✅ CSV 已下載', 'success');
+    showToast('✅ 明細 CSV 已下載', 'success');
   },
 
   clearAll() {

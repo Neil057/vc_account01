@@ -32,7 +32,7 @@
     <div class="amount-twd-conv" id="displayTWD">≈ NT$0</div>
   </div>
 
-  <!-- Editable Fields -->
+  <!-- Editable Header Fields -->
   <div class="field-group">
 
     <!-- Store Name -->
@@ -45,20 +45,10 @@
       <input class="form-input" id="fStoreNameJa" type="text" placeholder="店名（日文原文）">
     </div>
 
-    <!-- Items -->
-    <div class="field-row">
-      <label>品項</label>
-      <input class="form-input" id="fItems" type="text" placeholder="購買品項（繁體中文）">
-    </div>
-    <div class="field-row">
-      <label>品項日</label>
-      <input class="form-input" id="fItemsJa" type="text" placeholder="品項（日文原文）">
-    </div>
-
     <!-- Amount -->
     <div class="field-row">
-      <label>金額</label>
-      <input class="form-input" id="fAmountJPY" type="number" min="0" placeholder="日幣金額">
+      <label>總金額</label>
+      <input class="form-input" id="fAmountJPY" type="number" min="0" placeholder="收據總金額 (JPY)">
     </div>
 
   </div>
@@ -107,6 +97,20 @@
 
   </div>
 
+  <!-- Detailed Line Items (表身商品明細) -->
+  <div class="card" style="padding:16px;margin-bottom:12px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="font-size:13px;font-weight:700;color:var(--secondary);letter-spacing:0.5px;">
+        📋 收據品項明細（表身）
+      </div>
+      <button type="button" class="btn btn-ghost btn-sm" id="btnAddItem" style="padding:4px 10px;font-size:12px;">
+        + 新增品項
+      </button>
+    </div>
+    
+    <div id="itemsContainer" style="display:flex;flex-direction:column;gap:10px;"></div>
+  </div>
+
   <!-- Notes -->
   <div class="form-group">
     <label class="form-label">備註</label>
@@ -137,6 +141,8 @@
 <script src="js/storage.js"></script>
 <script src="js/app.js"></script>
 <script>
+let itemsData = [];
+
 document.addEventListener('DOMContentLoaded', () => {
   renderNav('scan');
 
@@ -149,12 +155,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const settings = Storage.getSettings();
 
-  // Fill fields
+  // Fill Header fields
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
   set('fStoreName',   data.storeName);
   set('fStoreNameJa', data.storeNameJa);
-  set('fItems',       data.items);
-  set('fItemsJa',     data.itemsJa);
   set('fAmountJPY',   data.amountJPY || 0);
   set('fNotes',       data.notes);
   set('fDate',        data.date || Format.today());
@@ -169,15 +173,92 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Items
+  itemsData = Array.isArray(data.items) && data.items.length > 0 ? data.items : [];
+  if (itemsData.length === 0 && (data.itemsSummary || data.items)) {
+    itemsData = [{
+      nameZh: typeof data.items === 'string' ? data.items : (data.itemsSummary || '商品'),
+      nameJa: data.itemsJa || '',
+      amountJPY: data.amountJPY || 0,
+      qty: 1
+    }];
+  }
+
+  renderItemsList();
+
   // Amount display
   updateAmountDisplay();
 
   // Live update on amount change
   document.getElementById('fAmountJPY').addEventListener('input', updateAmountDisplay);
-
-  // Save
-  document.getElementById('btnSave').onclick = save;
+  document.getElementById('btnAddItem').onclick = addItemRow;
+  document.getElementById('btnSave').onclick    = save;
 });
+
+function renderItemsList() {
+  const container = document.getElementById('itemsContainer');
+  const settings  = Storage.getSettings();
+  const rate      = settings.exchangeRate || 0.21;
+
+  if (itemsData.length === 0) {
+    container.innerHTML = `<div style="text-align:center;padding:12px;color:var(--text-muted);font-size:12px;">尚未加入品項</div>`;
+    return;
+  }
+
+  container.innerHTML = itemsData.map((it, idx) => {
+    const twd = Math.round((Number(it.amountJPY) || 0) * rate);
+    return `
+      <div style="background:var(--bg-secondary);border:1px solid var(--border-light);border-radius:var(--r-md);padding:10px 12px;position:relative;">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+          <input type="text" class="form-input" style="padding:6px 10px;font-size:13px;flex:1;" placeholder="中文品名" value="${it.nameZh || ''}" onchange="updateItemField(${idx}, 'nameZh', this.value)">
+          <input type="text" class="form-input" style="padding:6px 10px;font-size:12px;flex:1;color:var(--text-secondary);" placeholder="日文原文" value="${it.nameJa || ''}" onchange="updateItemField(${idx}, 'nameJa', this.value)">
+          <button type="button" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:15px;padding:2px 6px;" onclick="removeItem(${idx})" title="刪除">✕</button>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div style="display:flex;align-items:center;gap:4px;width:72px;">
+            <span style="font-size:11px;color:var(--text-muted);">數量</span>
+            <input type="number" min="1" class="form-input" style="padding:4px 6px;font-size:12px;text-align:center;" value="${it.qty || 1}" onchange="updateItemField(${idx}, 'qty', parseInt(this.value)||1)">
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;flex:1;">
+            <span style="font-size:12px;color:var(--primary);font-weight:700;">¥</span>
+            <input type="number" min="0" class="form-input" style="padding:4px 8px;font-size:13px;font-weight:700;" placeholder="日幣" value="${it.amountJPY || 0}" onchange="updateItemField(${idx}, 'amountJPY', parseInt(this.value)||0)">
+          </div>
+          <div style="font-size:12px;color:var(--text-secondary);min-width:64px;text-align:right;">
+            ≈ NT$${twd}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function updateItemField(idx, field, value) {
+  if (itemsData[idx]) {
+    itemsData[idx][field] = value;
+    if (field === 'amountJPY') {
+      const sumJPY = itemsData.reduce((s, it) => s + (Number(it.amountJPY) || 0), 0);
+      if (sumJPY > 0) {
+        document.getElementById('fAmountJPY').value = sumJPY;
+        updateAmountDisplay();
+      }
+      renderItemsList();
+    }
+  }
+}
+
+function removeItem(idx) {
+  itemsData.splice(idx, 1);
+  renderItemsList();
+}
+
+function addItemRow() {
+  itemsData.push({
+    nameZh: '',
+    nameJa: '',
+    amountJPY: 0,
+    qty: 1
+  });
+  renderItemsList();
+}
 
 function updateAmountDisplay() {
   const jpy      = parseInt(document.getElementById('fAmountJPY').value) || 0;
@@ -195,13 +276,27 @@ function save() {
   }
 
   const settings  = Storage.getSettings();
-  const amountTWD = Math.round(amountJPY * settings.exchangeRate);
+  const rate      = settings.exchangeRate || 0.21;
+  const amountTWD = Math.round(amountJPY * rate);
+
+  // Normalize items
+  const processedItems = itemsData.map(it => ({
+    nameZh: it.nameZh || '商品',
+    nameJa: it.nameJa || '',
+    amountJPY: parseInt(it.amountJPY, 10) || 0,
+    amountTWD: Math.round((parseInt(it.amountJPY, 10) || 0) * rate),
+    qty: parseInt(it.qty, 10) || 1
+  }));
+
+  const itemsSummary = processedItems.length > 0
+    ? processedItems.map(it => it.nameZh).join(', ')
+    : '';
 
   const record = {
     storeName:     document.getElementById('fStoreName').value.trim()   || '（未知）',
     storeNameJa:   document.getElementById('fStoreNameJa').value.trim(),
-    items:         document.getElementById('fItems').value.trim(),
-    itemsJa:       document.getElementById('fItemsJa').value.trim(),
+    items:         processedItems,
+    itemsSummary,
     amountJPY,
     amountTWD,
     taxType:       document.getElementById('fTaxType').value,

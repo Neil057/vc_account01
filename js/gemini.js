@@ -8,7 +8,7 @@ const GEMINI_MODELS = [
   'gemini-2.0-flash',
 ];
 
-// ─── Prompt (精心設計的15條日本稅制規則) ──────────────────────────────────────
+// ─── Prompt (精心設計的15條日本稅制規則 + 表頭表身明細結構) ───────────────────
 const RECEIPT_PROMPT = `You are an expert Japanese receipt (レシート) analyzer. Carefully examine this receipt image and return ONLY a valid JSON object with no markdown formatting.
 
 === JAPANESE TAX RULES (CRITICAL) ===
@@ -53,14 +53,17 @@ Rule 7 - Date:
 Rule 8 - Store Name:
   - Extract the Japanese store name.
   - Translate to Traditional Chinese (繁體中文).
-  - Common chains: ファミリーマート→全家; セブン-イレブン→7-ELEVEN; ローソン→羅森; マクドナルド→麥當勞.
+  - Common chains: ファミリーマート→全家; セブン-イレブン→7-ELEVEN; ローソン→羅森; マクドナルド→麥當勞; 西友→西友.
 
-Rule 9 - Items:
-  - List the 1-3 most significant purchased items.
-  - Provide both Japanese original and Traditional Chinese translation.
-  - For supermarkets/convenience stores with many items, describe as "便利商店購物" / "超市購物".
+Rule 9 - Detailed Line Items (表身商品明細):
+  - Extract ALL individual purchased items listed on the receipt.
+  - For each item provide:
+    * nameJa: Japanese product name as shown on receipt
+    * nameZh: Traditional Chinese translated product name
+    * amountJPY: price in JPY for this line item (number)
+    * qty: quantity (integer, default 1)
 
-Rule 10 - Category (pick EXACTLY one):
+Rule 10 - Category (pick EXACTLY one for the receipt):
   - 餐飲: restaurants, cafes, convenience store food, supermarket food & drinks, ramen, sushi, izakaya
   - 交通: trains (JR, 近鉄, etc.), buses, taxis, Suica/PASMO top-up, toll roads, ferry
   - 購物: clothing, electronics, souvenirs, cosmetics, 100-yen shops, department stores, non-food supermarket items
@@ -96,14 +99,20 @@ Return ONLY this JSON object, no other text:
 {
   "storeName": "Traditional Chinese store name",
   "storeNameJa": "Japanese store name (original)",
-  "items": "Items in Traditional Chinese, comma-separated (max 3)",
-  "itemsJa": "Items in Japanese original, comma-separated (max 3)",
   "amountJPY": 0,
   "taxType": "内税",
   "category": "餐飲",
   "paymentMethod": "現金",
   "date": "YYYY-MM-DD",
-  "notes": ""
+  "notes": "",
+  "items": [
+    {
+      "nameZh": "商品中文翻譯名稱",
+      "nameJa": "商品日文原文名稱",
+      "amountJPY": 0,
+      "qty": 1
+    }
+  ]
 }`;
 
 // ─── Gemini API Client ────────────────────────────────────────────────────────
@@ -118,8 +127,29 @@ const Gemini = {
     for (const model of GEMINI_MODELS) {
       try {
         const result = await this._call(settings.geminiApiKey, model, base64, mimeType);
-        // Apply exchange rate
-        result.amountTWD = Math.round((result.amountJPY || 0) * settings.exchangeRate);
+        const rate = settings.exchangeRate || 0.21;
+        
+        // Compute Header TWD
+        result.amountTWD = Math.round((result.amountJPY || 0) * rate);
+
+        // Normalize items array (表身明細)
+        if (!Array.isArray(result.items)) {
+          result.items = [];
+        }
+
+        result.items = result.items.map(it => ({
+          nameZh: it.nameZh || it.name || '商品',
+          nameJa: it.nameJa || it.nameZh || '',
+          amountJPY: Math.round(Number(it.amountJPY) || 0),
+          amountTWD: Math.round((Number(it.amountJPY) || 0) * rate),
+          qty: parseInt(it.qty, 10) || 1
+        }));
+
+        // Summary string for quick views
+        result.itemsSummary = result.items.length > 0
+          ? result.items.map(it => it.nameZh).join(', ')
+          : (typeof result.items === 'string' ? result.items : '');
+
         return result;
       } catch (e) {
         lastErr = e;
