@@ -1,9 +1,11 @@
 // ─── Gemini API Integration ───────────────────────────────────────────────────
 
 const GEMINI_MODELS = [
+  'gemini-2.5-flash',
   'gemini-2.0-flash',
   'gemini-2.0-flash-001',
-  'gemini-1.5-flash',
+  'gemini-1.5-flash-latest',
+  'gemini-1.5-pro',
 ];
 
 // ─── Prompt (精心設計的15條日本稅制規則) ──────────────────────────────────────
@@ -131,7 +133,10 @@ const Gemini = {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey
+      },
       body: JSON.stringify({
         contents: [{
           parts: [
@@ -139,15 +144,19 @@ const Gemini = {
             { text: RECEIPT_PROMPT }
           ]
         }],
-        generationConfig: { temperature: 0.05, maxOutputTokens: 1024 }
+        generationConfig: {
+          temperature: 0.1,
+          maxOutputTokens: 1024,
+          responseMimeType: 'application/json'
+        }
       })
     });
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       const msg = err?.error?.message || `HTTP ${res.status}`;
-      if (res.status === 400 && msg.includes('API_KEY')) throw new Error('API Key 無效，請重新確認');
-      if (res.status === 429) throw new Error('請求頻率過高，請稍後再試');
+      if (res.status === 400 && (msg.includes('API_KEY') || msg.includes('API key'))) throw new Error('API Key 無效或未開通，請重新確認');
+      if (res.status === 429) throw new Error('請求頻率過高或額度用盡，請稍後再試');
       throw new Error(msg);
     }
 
