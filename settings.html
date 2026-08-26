@@ -196,8 +196,8 @@ function updateBudgetPreview() {
 function saveApiKey() {
   const key = document.getElementById('apiKey').value.trim();
   if (!key) { showToast('請輸入 API Key', 'error'); return; }
-  if (!key.startsWith('AIza')) {
-    showToast('API Key 格式不正確（應以 AIza 開頭）', 'error', 4000); return;
+  if (key.length < 15) {
+    showToast('API Key 長度過短，請確認是否完整複製', 'error', 4000); return;
   }
   Storage.setSetting('geminiApiKey', key);
   document.getElementById('apiStatus').textContent = '✅ 已儲存';
