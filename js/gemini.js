@@ -1,11 +1,11 @@
 // ─── Gemini API Integration ───────────────────────────────────────────────────
 
 const GEMINI_MODELS = [
+  'gemini-3.6-flash',
+  'gemini-3.5-flash',
+  'gemini-3.0-flash',
   'gemini-2.5-flash',
   'gemini-2.0-flash',
-  'gemini-2.0-flash-001',
-  'gemini-1.5-flash-latest',
-  'gemini-1.5-pro',
 ];
 
 // ─── Prompt (精心設計的15條日本稅制規則) ──────────────────────────────────────
