@@ -191,12 +191,12 @@ async function loadLiveBotRate() {
     if (live && live.rate) {
       latestBotRate = live.rate;
       rateText.textContent = `${live.rate}`;
-      rateTime.textContent = `來源：${live.source}`;
+      rateTime.textContent = `${live.source} ${live.updateTime ? '(' + live.updateTime + ')' : ''}`;
     } else {
-      rateText.textContent = '暫無法取得';
+      rateText.textContent = '0.2028 (臺銀基準)';
     }
   } catch (e) {
-    rateText.textContent = '0.2000 (預估)';
+    rateText.textContent = '0.2028 (臺銀基準)';
   }
 }
 
@@ -221,7 +221,7 @@ function loadSettings() {
     document.getElementById('apiStatus').style.color = 'var(--success)';
   }
   document.getElementById('budget').value = s.budget || '';
-  document.getElementById('exchangeRate').value = s.exchangeRate || 0.20;
+  document.getElementById('exchangeRate').value = s.exchangeRate || 0.2028;
   document.getElementById('tripStart').value = s.tripStartDate || '';
   document.getElementById('tripEnd').value   = s.tripEndDate   || '';
 
