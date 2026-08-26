@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#090e1a">
+  <title>掃描收據 — 日本記帳</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="page-header">
+    <a href="index.html" class="back-btn">←</a>
+    <div style="flex:1;padding-left:12px;">
+      <div class="page-title">📷 掃描收據</div>
+      <div class="page-subtitle">拍照或上傳收據，AI 自動辨識</div>
+    </div>
+  </div>
+
+  <!-- Drop / Preview Zone -->
+  <div class="scan-drop" id="dropZone">
+    <div class="scan-placeholder" id="placeholder">
+      <div class="scan-placeholder-icon">🧾</div>
+      <div class="scan-placeholder-text">點擊選取收據照片</div>
+      <div class="scan-placeholder-hint">支援 JPG、PNG、HEIC<br>建議在光線充足下拍攝，確保文字清晰</div>
+    </div>
+    <img id="previewImg" class="hidden" alt="收據預覽">
+    <div class="scan-badge hidden" id="readyBadge">✓ 已選取</div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="scan-actions mt-12">
+    <button class="btn btn-secondary" id="btnCamera">
+      📷 拍照
+    </button>
+    <button class="btn btn-secondary" id="btnUpload">
+      🖼️ 選圖片
+    </button>
+  </div>
+
+  <!-- Hidden file inputs -->
+  <input type="file" id="inputCamera" accept="image/*" capture="environment" style="display:none">
+  <input type="file" id="inputGallery" accept="image/*" style="display:none">
+
+  <!-- Tips -->
+  <div class="card mt-16" style="padding:14px 16px;">
+    <div style="font-size:12px;font-weight:700;color:var(--text-muted);letter-spacing:1px;margin-bottom:10px;">
+      💡 拍攝小技巧
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--text-secondary);">
+        <span>1.</span><span>將收據放平，避免折疊或皺摺</span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--text-secondary);">
+        <span>2.</span><span>確保收據完整出現在畫面中</span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--text-secondary);">
+        <span>3.</span><span>在充足光線下拍攝，避免反光</span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--text-secondary);">
+        <span>4.</span><span>模糊照片可能導致辨識失敗</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Analyze Button (hidden until image selected) -->
+  <div id="analyzeWrap" class="hidden mt-16" style="padding-bottom:8px;">
+    <button class="btn btn-primary btn-full" id="btnAnalyze" style="font-size:17px;padding:18px;">
+      🤖 開始 AI 辨識
+    </button>
+    <div style="text-align:center;margin-top:10px;">
+      <button class="btn btn-ghost btn-sm" id="btnReset">重新選擇圖片</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="js/storage.js"></script>
+<script src="js/gemini.js"></script>
+<script src="js/app.js"></script>
+<script>
+let selectedFile = null;
+let compressedData = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderNav('scan');
+
+  // Bind buttons
+  document.getElementById('btnCamera').onclick  = () => document.getElementById('inputCamera').click();
+  document.getElementById('btnUpload').onclick  = () => document.getElementById('inputGallery').click();
+  document.getElementById('inputCamera').onchange  = e => handleFile(e.target.files[0]);
+  document.getElementById('inputGallery').onchange = e => handleFile(e.target.files[0]);
+  document.getElementById('btnAnalyze').onclick = analyze;
+  document.getElementById('btnReset').onclick   = reset;
+
+  // Tap on drop zone to upload
+  document.getElementById('dropZone').onclick = (e) => {
+    if (!selectedFile) document.getElementById('inputGallery').click();
+  };
+});
+
+async function handleFile(file) {
+  if (!file) return;
+  if (!file.type.startsWith('image/')) {
+    showToast('請選擇圖片檔案', 'error'); return;
+  }
+
+  selectedFile = file;
+  showLoading('壓縮圖片中...');
+
+  try {
+    compressedData = await Gemini.compress(file);
+    // Show preview
+    const img = document.getElementById('previewImg');
+    img.src = compressedData.previewUrl;
+    img.classList.remove('hidden');
+    document.getElementById('placeholder').classList.add('hidden');
+    document.getElementById('readyBadge').classList.remove('hidden');
+    document.getElementById('dropZone').classList.add('has-image');
+    document.getElementById('analyzeWrap').classList.remove('hidden');
+    // Scroll to analyze button
+    document.getElementById('analyzeWrap').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  } catch (e) {
+    showToast('圖片載入失敗：' + e.message, 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+async function analyze() {
+  if (!requireApiKey()) return;
+  if (!compressedData) { showToast('請先選擇收據圖片', 'error'); return; }
+
+  showLoading('🤖 AI 辨識日文收據中...');
+
+  try {
+    const result = await Gemini.analyzeReceipt(compressedData.base64, compressedData.mimeType);
+    // Pass result to confirm page via sessionStorage
+    Session.set('scanResult', result);
+    window.location.href = 'confirm.html';
+  } catch (e) {
+    hideLoading();
+    showToast('❌ ' + e.message, 'error', 5000);
+  }
+}
+
+function reset() {
+  selectedFile   = null;
+  compressedData = null;
+  const img = document.getElementById('previewImg');
+  if (img.src) URL.revokeObjectURL(img.src);
+  img.src = '';
+  img.classList.add('hidden');
+  document.getElementById('placeholder').classList.remove('hidden');
+  document.getElementById('readyBadge').classList.add('hidden');
+  document.getElementById('dropZone').classList.remove('has-image');
+  document.getElementById('analyzeWrap').classList.add('hidden');
+  // Reset file inputs
+  document.getElementById('inputCamera').value  = '';
+  document.getElementById('inputGallery').value = '';
+}
+</script>
+</body>
+</html>

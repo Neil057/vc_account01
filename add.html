@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#090e1a">
+  <title>手動新增 — 日本記帳</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="page-header">
+    <a href="index.html" class="back-btn">←</a>
+    <div style="flex:1;padding-left:12px;">
+      <div class="page-title">✏️ 手動新增</div>
+      <div class="page-subtitle">沒有收據也能記帳</div>
+    </div>
+  </div>
+
+  <!-- Amount Hero Input -->
+  <div class="amount-hero" style="cursor:default;">
+    <div style="font-size:12px;font-weight:700;letter-spacing:1px;color:var(--text-secondary);margin-bottom:10px;">
+      金額（日幣）
+    </div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
+      <span class="yen-sign" style="font-size:28px;color:var(--primary);font-weight:700;">¥</span>
+      <input
+        id="fAmountJPY" type="number" min="0" inputmode="numeric"
+        placeholder="0"
+        style="
+          font-size:44px;font-weight:900;letter-spacing:-2px;
+          background:transparent;border:none;color:var(--text-primary);
+          width:100%;text-align:center;padding:0;
+          outline:none;-webkit-appearance:none;
+        "
+      >
+    </div>
+    <div class="amount-twd-conv" id="displayTWD">≈ NT$0</div>
+  </div>
+
+  <!-- Store + Items -->
+  <div class="field-group">
+    <div class="field-row">
+      <label>店名</label>
+      <input class="form-input" id="fStoreName" type="text" placeholder="店家名稱">
+    </div>
+    <div class="field-row">
+      <label>品項</label>
+      <input class="form-input" id="fItems" type="text" placeholder="購買品項（可省略）">
+    </div>
+  </div>
+
+  <!-- Category + Payment + Tax + Date -->
+  <div class="field-group">
+    <div class="field-row">
+      <label>類別</label>
+      <select class="form-input form-select" id="fCategory">
+        <option>餐飲</option>
+        <option>交通</option>
+        <option>購物</option>
+        <option>門票</option>
+        <option>住宿</option>
+        <option>藥品</option>
+        <option>其他</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <label>付款</label>
+      <select class="form-input form-select" id="fPayment">
+        <option>現金</option>
+        <option>信用卡</option>
+        <option>Suica</option>
+        <option>PayPay</option>
+        <option>其他</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <label>稅制</label>
+      <select class="form-input form-select" id="fTaxType">
+        <option>内税</option>
+        <option>外税</option>
+        <option>免税</option>
+        <option>不明</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <label>日期</label>
+      <input class="form-input" id="fDate" type="date">
+    </div>
+  </div>
+
+  <!-- Notes -->
+  <div class="form-group">
+    <label class="form-label">備註（選填）</label>
+    <input class="form-input" id="fNotes" type="text" placeholder="補充說明">
+  </div>
+
+  <!-- Category Quick Select -->
+  <div class="form-group">
+    <div class="form-label">快速選類別</div>
+    <div class="pills" id="catPills"></div>
+  </div>
+
+  <!-- Save -->
+  <button class="btn btn-primary btn-full" id="btnSave" style="font-size:16px;padding:17px;margin-top:8px;">
+    💾 儲存記帳
+  </button>
+
+</div>
+
+<script src="js/storage.js"></script>
+<script src="js/app.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  renderNav('scan');
+
+  // Default date = today
+  document.getElementById('fDate').value = Format.today();
+
+  // Live TWD preview
+  document.getElementById('fAmountJPY').addEventListener('input', updateTWD);
+
+  // Category quick pills
+  const pills = document.getElementById('catPills');
+  CATEGORY_LIST.forEach(cat => {
+    const p = document.createElement('button');
+    p.className = 'pill';
+    p.textContent = getCatIcon(cat) + ' ' + cat;
+    p.onclick = () => {
+      document.getElementById('fCategory').value = cat;
+      document.querySelectorAll('#catPills .pill').forEach(x => x.classList.remove('active'));
+      p.classList.add('active');
+    };
+    pills.appendChild(p);
+  });
+
+  document.getElementById('btnSave').onclick = save;
+});
+
+function updateTWD() {
+  const jpy = parseInt(document.getElementById('fAmountJPY').value) || 0;
+  const settings = Storage.getSettings();
+  const twd = Math.round(jpy * settings.exchangeRate);
+  document.getElementById('displayTWD').textContent = `≈ NT$${twd.toLocaleString()}`;
+}
+
+function save() {
+  const amountJPY = parseInt(document.getElementById('fAmountJPY').value) || 0;
+  if (amountJPY <= 0) {
+    showToast('請輸入金額', 'error'); return;
+  }
+  const storeName = document.getElementById('fStoreName').value.trim();
+  if (!storeName) {
+    showToast('請輸入店家名稱', 'error'); return;
+  }
+
+  const settings  = Storage.getSettings();
+  const amountTWD = Math.round(amountJPY * settings.exchangeRate);
+
+  Storage.addRecord({
+    storeName,
+    storeNameJa:   '',
+    items:         document.getElementById('fItems').value.trim(),
+    itemsJa:       '',
+    amountJPY,
+    amountTWD,
+    taxType:       document.getElementById('fTaxType').value,
+    category:      document.getElementById('fCategory').value,
+    paymentMethod: document.getElementById('fPayment').value,
+    date:          document.getElementById('fDate').value || Format.today(),
+    notes:         document.getElementById('fNotes').value.trim(),
+  });
+
+  showToast('✅ 記帳成功！', 'success');
+  setTimeout(() => { window.location.href = 'index.html'; }, 700);
+}
+</script>
+</body>
+</html>

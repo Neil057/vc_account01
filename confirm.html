@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#090e1a">
+  <title>確認結果 — 日本記帳</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="page-header">
+    <a href="scan.html" class="back-btn">←</a>
+    <div style="flex:1;padding-left:12px;">
+      <div class="page-title">確認記帳資訊</div>
+      <div class="page-subtitle">AI 辨識結果，可以手動修改</div>
+    </div>
+  </div>
+
+  <!-- AI Badge -->
+  <div style="margin-bottom:12px;">
+    <span class="ai-badge">✦ AI 辨識完成</span>
+  </div>
+
+  <!-- Amount Hero -->
+  <div class="amount-hero">
+    <div class="amount-jpy-big">
+      <span class="yen-sign">¥</span><span id="displayJPY">0</span>
+    </div>
+    <div class="amount-twd-conv" id="displayTWD">≈ NT$0</div>
+  </div>
+
+  <!-- Editable Fields -->
+  <div class="field-group">
+
+    <!-- Store Name -->
+    <div class="field-row">
+      <label>店名</label>
+      <input class="form-input" id="fStoreName" type="text" placeholder="店名（繁體中文）">
+    </div>
+    <div class="field-row">
+      <label>日文</label>
+      <input class="form-input" id="fStoreNameJa" type="text" placeholder="店名（日文原文）">
+    </div>
+
+    <!-- Items -->
+    <div class="field-row">
+      <label>品項</label>
+      <input class="form-input" id="fItems" type="text" placeholder="購買品項（繁體中文）">
+    </div>
+    <div class="field-row">
+      <label>品項日</label>
+      <input class="form-input" id="fItemsJa" type="text" placeholder="品項（日文原文）">
+    </div>
+
+    <!-- Amount -->
+    <div class="field-row">
+      <label>金額</label>
+      <input class="form-input" id="fAmountJPY" type="number" min="0" placeholder="日幣金額">
+    </div>
+
+  </div>
+
+  <!-- Category + Payment + Tax + Date -->
+  <div class="field-group">
+
+    <div class="field-row">
+      <label>類別</label>
+      <select class="form-input form-select" id="fCategory">
+        <option>餐飲</option>
+        <option>交通</option>
+        <option>購物</option>
+        <option>門票</option>
+        <option>住宿</option>
+        <option>藥品</option>
+        <option>其他</option>
+      </select>
+    </div>
+
+    <div class="field-row">
+      <label>付款</label>
+      <select class="form-input form-select" id="fPayment">
+        <option>現金</option>
+        <option>信用卡</option>
+        <option>Suica</option>
+        <option>PayPay</option>
+        <option>其他</option>
+      </select>
+    </div>
+
+    <div class="field-row">
+      <label>稅制</label>
+      <select class="form-input form-select" id="fTaxType">
+        <option>内税</option>
+        <option>外税</option>
+        <option>免税</option>
+        <option>不明</option>
+      </select>
+    </div>
+
+    <div class="field-row">
+      <label>日期</label>
+      <input class="form-input" id="fDate" type="date">
+    </div>
+
+  </div>
+
+  <!-- Notes -->
+  <div class="form-group">
+    <label class="form-label">備註</label>
+    <input class="form-input" id="fNotes" type="text" placeholder="稅制說明、折扣資訊等（選填）">
+  </div>
+
+  <!-- TWD Preview -->
+  <div style="
+    background:var(--bg-card);border:1px solid var(--border-light);
+    border-radius:var(--r-md);padding:12px 16px;margin-bottom:16px;
+    display:flex;align-items:center;justify-content:space-between;">
+    <span style="font-size:13px;color:var(--text-secondary);">換算台幣</span>
+    <span style="font-size:16px;font-weight:700;" id="twdPreview">NT$0</span>
+  </div>
+
+  <!-- Save / Cancel -->
+  <div style="display:flex;flex-direction:column;gap:10px;padding-bottom:8px;">
+    <button class="btn btn-primary btn-full" id="btnSave" style="font-size:16px;padding:17px;">
+      💾 儲存記錄
+    </button>
+    <a href="scan.html" class="btn btn-ghost btn-full" style="font-size:14px;">
+      重新掃描
+    </a>
+  </div>
+
+</div>
+
+<script src="js/storage.js"></script>
+<script src="js/app.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  renderNav('scan');
+
+  const data = Session.get('scanResult');
+  if (!data) {
+    showToast('沒有找到辨識結果，請重新掃描', 'error');
+    setTimeout(() => { window.location.href = 'scan.html'; }, 1500);
+    return;
+  }
+
+  const settings = Storage.getSettings();
+
+  // Fill fields
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+  set('fStoreName',   data.storeName);
+  set('fStoreNameJa', data.storeNameJa);
+  set('fItems',       data.items);
+  set('fItemsJa',     data.itemsJa);
+  set('fAmountJPY',   data.amountJPY || 0);
+  set('fNotes',       data.notes);
+  set('fDate',        data.date || Format.today());
+
+  // Selects
+  ['fCategory', 'fPayment', 'fTaxType'].forEach(id => {
+    const el = document.getElementById(id);
+    const map = { fCategory: data.category, fPayment: data.paymentMethod, fTaxType: data.taxType };
+    if (el && map[id]) {
+      const opt = Array.from(el.options).find(o => o.value === map[id]);
+      if (opt) el.value = map[id];
+    }
+  });
+
+  // Amount display
+  updateAmountDisplay();
+
+  // Live update on amount change
+  document.getElementById('fAmountJPY').addEventListener('input', updateAmountDisplay);
+
+  // Save
+  document.getElementById('btnSave').onclick = save;
+});
+
+function updateAmountDisplay() {
+  const jpy      = parseInt(document.getElementById('fAmountJPY').value) || 0;
+  const settings = Storage.getSettings();
+  const twd      = Math.round(jpy * settings.exchangeRate);
+  document.getElementById('displayJPY').textContent = jpy.toLocaleString();
+  document.getElementById('displayTWD').textContent = `≈ NT$${twd.toLocaleString()}`;
+  document.getElementById('twdPreview').textContent  = `NT$${twd.toLocaleString()}`;
+}
+
+function save() {
+  const amountJPY = parseInt(document.getElementById('fAmountJPY').value) || 0;
+  if (amountJPY <= 0) {
+    showToast('請輸入金額', 'error'); return;
+  }
+
+  const settings  = Storage.getSettings();
+  const amountTWD = Math.round(amountJPY * settings.exchangeRate);
+
+  const record = {
+    storeName:     document.getElementById('fStoreName').value.trim()   || '（未知）',
+    storeNameJa:   document.getElementById('fStoreNameJa').value.trim(),
+    items:         document.getElementById('fItems').value.trim(),
+    itemsJa:       document.getElementById('fItemsJa').value.trim(),
+    amountJPY,
+    amountTWD,
+    taxType:       document.getElementById('fTaxType').value,
+    category:      document.getElementById('fCategory').value,
+    paymentMethod: document.getElementById('fPayment').value,
+    date:          document.getElementById('fDate').value || Format.today(),
+    notes:         document.getElementById('fNotes').value.trim(),
+  };
+
+  Storage.addRecord(record);
+  Session.clear('scanResult');
+  showToast('✅ 記帳成功！', 'success');
+  setTimeout(() => { window.location.href = 'index.html'; }, 800);
+}
+</script>
+</body>
+</html>

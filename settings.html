@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#090e1a">
+  <title>設定 — 日本記帳</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <div class="page-title">⚙️ 設定</div>
+      <div class="page-subtitle">API、預算、匯率設定</div>
+    </div>
+  </div>
+
+  <!-- ── Gemini API ─────────────────────────────────────── -->
+  <div class="settings-group">
+    <div class="settings-group-title">🤖 Gemini AI</div>
+    <div class="settings-card">
+      <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:10px;">
+        <div>
+          <div class="settings-row-label">Gemini API Key</div>
+          <div class="settings-row-hint">前往 aistudio.google.com 申請，免費使用</div>
+        </div>
+        <div class="input-wrapper" style="width:100%">
+          <input
+            class="form-input" id="apiKey" type="password"
+            placeholder="AIzaSy..."
+            autocomplete="off" spellcheck="false"
+            style="padding-right:48px;"
+          >
+          <button class="input-suffix" id="toggleKey" type="button" title="顯示/隱藏">👁️</button>
+        </div>
+        <div style="display:flex;gap:8px;width:100%;">
+          <button class="btn btn-primary btn-sm" id="saveApiKey" style="flex:1;">儲存 API Key</button>
+          <a href="https://aistudio.google.com" target="_blank" rel="noopener"
+            class="btn btn-ghost btn-sm" style="flex:1;text-align:center;">取得 Key →</a>
+        </div>
+        <div id="apiStatus" style="font-size:12px;color:var(--text-muted);"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Budget & Exchange ──────────────────────────────── -->
+  <div class="settings-group">
+    <div class="settings-group-title">💴 預算與匯率</div>
+    <div class="settings-card">
+
+      <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:8px;">
+        <div class="settings-row-label">旅行總預算（日幣 ¥）</div>
+        <div class="input-wrapper" style="width:100%">
+          <input class="form-input" id="budget" type="number" min="0" placeholder="例：300000">
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);">
+          ≈ NT$<span id="budgetTWD">0</span>
+        </div>
+      </div>
+
+      <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:8px;">
+        <div class="settings-row-label">換算匯率（1 日幣 = ? 台幣）</div>
+        <div class="input-wrapper" style="width:100%">
+          <input class="form-input" id="exchangeRate" type="number" min="0" step="0.001" placeholder="例：0.21">
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);" id="rateExample">¥1,000 ≈ NT$210</div>
+      </div>
+
+    </div>
+    <button class="btn btn-secondary btn-full mt-8" id="saveBudget">💾 儲存預算設定</button>
+  </div>
+
+  <!-- ── Trip Dates ─────────────────────────────────────── -->
+  <div class="settings-group">
+    <div class="settings-group-title">📅 旅行日期</div>
+    <div class="settings-card">
+      <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:8px;">
+        <div class="settings-row-label">出發日期</div>
+        <input class="form-input" id="tripStart" type="date" style="width:100%">
+      </div>
+      <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:8px;">
+        <div class="settings-row-label">回國日期</div>
+        <input class="form-input" id="tripEnd" type="date" style="width:100%">
+      </div>
+    </div>
+    <button class="btn btn-secondary btn-full mt-8" id="saveDates">💾 儲存日期</button>
+  </div>
+
+  <!-- ── Data Management ────────────────────────────────── -->
+  <div class="settings-group">
+    <div class="settings-group-title">📂 資料管理</div>
+    <div class="settings-card">
+
+      <div class="settings-row">
+        <span class="settings-row-icon">📥</span>
+        <div class="settings-row-info">
+          <div class="settings-row-label">匯出所有記錄</div>
+          <div class="settings-row-hint">下載 CSV 檔案，可用 Excel 開啟</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" id="btnExport">匯出</button>
+      </div>
+
+      <div class="settings-row">
+        <span class="settings-row-icon">📊</span>
+        <div class="settings-row-info">
+          <div class="settings-row-label">目前記錄筆數</div>
+          <div class="settings-row-hint" id="recordCountHint">讀取中...</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Danger Zone ────────────────────────────────────── -->
+  <div class="settings-group">
+    <div class="settings-group-title" style="color:var(--danger);">⚠️ 危險操作</div>
+    <div class="danger-zone">
+      <div style="font-size:14px;font-weight:600;margin-bottom:6px;">清除所有記帳資料</div>
+      <div style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;">
+        這會刪除所有收據記錄，設定不受影響。<br>此操作無法復原，請先匯出 CSV 備份。
+      </div>
+      <button class="btn btn-danger btn-full" id="btnClear">🗑️ 清除所有記錄</button>
+    </div>
+  </div>
+
+  <!-- App Info -->
+  <div style="text-align:center;padding:16px 0;font-size:12px;color:var(--text-muted);">
+    🇯🇵 日本收據記帳 v1.0<br>
+    Powered by Google Gemini · 資料存於本機瀏覽器
+  </div>
+
+</div>
+
+<script src="js/storage.js"></script>
+<script src="js/app.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  renderNav('settings');
+  loadSettings();
+
+  // API Key toggle
+  const keyInput = document.getElementById('apiKey');
+  document.getElementById('toggleKey').onclick = () => {
+    keyInput.type = keyInput.type === 'password' ? 'text' : 'password';
+  };
+
+  // Save handlers
+  document.getElementById('saveApiKey').onclick = saveApiKey;
+  document.getElementById('saveBudget').onclick  = saveBudget;
+  document.getElementById('saveDates').onclick   = saveDates;
+  document.getElementById('btnExport').onclick   = () => Storage.exportCSV();
+  document.getElementById('btnClear').onclick    = clearData;
+
+  // Live exchange rate preview
+  document.getElementById('exchangeRate').addEventListener('input', updateRatePreview);
+  document.getElementById('budget').addEventListener('input', updateBudgetPreview);
+});
+
+function loadSettings() {
+  const s = Storage.getSettings();
+  if (s.geminiApiKey) {
+    document.getElementById('apiKey').value = s.geminiApiKey;
+    document.getElementById('apiStatus').textContent = '✅ API Key 已設定';
+    document.getElementById('apiStatus').style.color = 'var(--success)';
+  }
+  document.getElementById('budget').value = s.budget || '';
+  document.getElementById('exchangeRate').value = s.exchangeRate || 0.21;
+  document.getElementById('tripStart').value = s.tripStartDate || '';
+  document.getElementById('tripEnd').value   = s.tripEndDate   || '';
+
+  const records = Storage.getRecords();
+  document.getElementById('recordCountHint').textContent =
+    `共 ${records.length} 筆記帳，合計 ${Format.yen(Storage.getTotalSpending())}`;
+
+  updateRatePreview();
+  updateBudgetPreview();
+}
+
+function updateRatePreview() {
+  const rate = parseFloat(document.getElementById('exchangeRate').value) || 0;
+  document.getElementById('rateExample').textContent = rate > 0
+    ? `¥1,000 ≈ NT$${Math.round(1000 * rate).toLocaleString()}`
+    : '請輸入正確匯率';
+}
+
+function updateBudgetPreview() {
+  const budget = parseInt(document.getElementById('budget').value) || 0;
+  const rate   = parseFloat(document.getElementById('exchangeRate').value) || 0.21;
+  document.getElementById('budgetTWD').textContent =
+    budget > 0 ? Math.round(budget * rate).toLocaleString() : '0';
+}
+
+function saveApiKey() {
+  const key = document.getElementById('apiKey').value.trim();
+  if (!key) { showToast('請輸入 API Key', 'error'); return; }
+  if (!key.startsWith('AIza')) {
+    showToast('API Key 格式不正確（應以 AIza 開頭）', 'error', 4000); return;
+  }
+  Storage.setSetting('geminiApiKey', key);
+  document.getElementById('apiStatus').textContent = '✅ 已儲存';
+  document.getElementById('apiStatus').style.color = 'var(--success)';
+  showToast('✅ API Key 已儲存', 'success');
+}
+
+function saveBudget() {
+  const budget = parseInt(document.getElementById('budget').value) || 0;
+  const rate   = parseFloat(document.getElementById('exchangeRate').value) || 0;
+
+  if (rate <= 0 || rate > 10) {
+    showToast('請輸入正確的匯率（例：0.21）', 'error'); return;
+  }
+
+  Storage.setSetting('budget', budget);
+  Storage.setSetting('exchangeRate', rate);
+  showToast('✅ 預算設定已儲存', 'success');
+}
+
+function saveDates() {
+  Storage.setSetting('tripStartDate', document.getElementById('tripStart').value);
+  Storage.setSetting('tripEndDate',   document.getElementById('tripEnd').value);
+  showToast('✅ 旅行日期已儲存', 'success');
+}
+
+async function clearData() {
+  const ok = await confirm2('確定要清除所有記帳資料嗎？');
+  if (ok) {
+    Storage.clearAll();
+    document.getElementById('recordCountHint').textContent = '共 0 筆記帳，合計 ¥0';
+    showToast('✅ 資料已清除', 'info');
+  }
+}
+</script>
+</body>
+</html>
