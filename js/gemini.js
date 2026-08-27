@@ -225,8 +225,9 @@ const Gemini = {
         }],
         generationConfig: {
           temperature: 0.1,
-          maxOutputTokens: 1024,
-          responseMimeType: 'application/json'
+          maxOutputTokens: 2048,
+          responseMimeType: 'application/json',
+          thinkingConfig: { thinkingBudget: 0 }
         }
       })
     });
@@ -240,14 +241,23 @@ const Gemini = {
     }
 
     const data = await res.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    const candidate = data?.candidates?.[0];
+    const text = candidate?.content?.parts?.[0]?.text;
     if (!text) throw new Error('Gemini 未回傳結果');
+
+    if (candidate.finishReason === 'MAX_TOKENS') {
+      console.warn('[Gemini] Response truncated (MAX_TOKENS):', text);
+      throw new Error('AI 回應被截斷（token 用盡），請重試');
+    }
 
     // Strip markdown code fences if present
     const clean = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
     let parsed;
     try { parsed = JSON.parse(clean); }
-    catch { throw new Error('無法解析 AI 回傳的格式，請重試'); }
+    catch {
+      console.warn('[Gemini] Failed to parse response as JSON:', text);
+      throw new Error('無法解析 AI 回傳的格式，請重試');
+    }
 
     if (typeof parsed.amountJPY !== 'number') throw new Error('辨識失敗：無法取得金額，請確認圖片清晰度');
     return parsed;
