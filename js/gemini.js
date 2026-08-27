@@ -161,7 +161,7 @@ Return ONLY this JSON object, no other text:
 
 // ─── Gemini API Client ────────────────────────────────────────────────────────
 const Gemini = {
-  DEFAULT_MODEL: 'gemini-2.5-flash',
+  DEFAULT_MODEL: 'gemini-3.6-flash',
 
   // Fetches the live list of selectable flash models for the model dropdown.
   async listModels() {
@@ -225,9 +225,8 @@ const Gemini = {
         }],
         generationConfig: {
           temperature: 0.1,
-          maxOutputTokens: 2048,
-          responseMimeType: 'application/json',
-          thinkingConfig: { thinkingBudget: 0 }
+          maxOutputTokens: 8192,
+          responseMimeType: 'application/json'
         }
       })
     });
