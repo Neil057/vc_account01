@@ -67,6 +67,14 @@
 
   <!-- Analyze Button (hidden until image selected) -->
   <div id="analyzeWrap" class="hidden mt-16" style="padding-bottom:8px;">
+    <div class="field-group">
+      <div class="field-row">
+        <label>AI 模型</label>
+        <select class="form-input form-select" id="fModel" disabled>
+          <option value="gemini-2.5-flash">gemini-2.5-flash（載入中...）</option>
+        </select>
+      </div>
+    </div>
     <button class="btn btn-primary btn-full" id="btnAnalyze" style="font-size:17px;padding:18px;">
       🤖 開始 AI 辨識
     </button>
@@ -122,6 +130,8 @@ async function handleFile(file) {
     document.getElementById('analyzeWrap').classList.remove('hidden');
     // Scroll to analyze button
     document.getElementById('analyzeWrap').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    // Fetch the live model list now that there's an image to analyze
+    loadModelOptions();
   } catch (e) {
     showToast('圖片載入失敗：' + e.message, 'error');
   } finally {
@@ -129,14 +139,37 @@ async function handleFile(file) {
   }
 }
 
+// Populates the model dropdown with the live list of available Gemini
+// flash models. Always defaults the selection to gemini-2.5-flash.
+async function loadModelOptions() {
+  const select = document.getElementById('fModel');
+  select.disabled = true;
+  select.innerHTML = `<option value="${Gemini.DEFAULT_MODEL}">${Gemini.DEFAULT_MODEL}（載入中...）</option>`;
+
+  try {
+    const models = await Gemini.listModels();
+    select.innerHTML = models.map(m => `<option value="${m}">${m}</option>`).join('');
+    select.value = models.includes(Gemini.DEFAULT_MODEL) ? Gemini.DEFAULT_MODEL : models[0];
+  } catch (e) {
+    // No API key yet, or the list call failed — still let the user proceed
+    // with the default model.
+    select.innerHTML = `<option value="${Gemini.DEFAULT_MODEL}">${Gemini.DEFAULT_MODEL}</option>`;
+    select.value = Gemini.DEFAULT_MODEL;
+  } finally {
+    select.disabled = false;
+  }
+}
+
 async function analyze() {
   if (!requireApiKey()) return;
   if (!compressedData) { showToast('請先選擇收據圖片', 'error'); return; }
 
-  showLoading('🤖 AI 辨識日文收據中...');
+  const model = document.getElementById('fModel').value || Gemini.DEFAULT_MODEL;
+  showLoading(`🤖 使用 ${model} 辨識日文收據中...`);
 
   try {
-    const result = await Gemini.analyzeReceipt(compressedData.base64, compressedData.mimeType);
+    // Single model, no automatic fallback: if this model fails, stop here.
+    const result = await Gemini.analyzeReceipt(compressedData.base64, compressedData.mimeType, model);
     // Pass result to confirm page via sessionStorage
     Session.set('scanResult', result);
     window.location.href = 'confirm.html';
@@ -157,6 +190,7 @@ function reset() {
   document.getElementById('readyBadge').classList.add('hidden');
   document.getElementById('dropZone').classList.remove('has-image');
   document.getElementById('analyzeWrap').classList.add('hidden');
+  document.getElementById('fModel').innerHTML = `<option value="${Gemini.DEFAULT_MODEL}">${Gemini.DEFAULT_MODEL}（載入中...）</option>`;
   // Reset file inputs
   document.getElementById('inputCamera').value  = '';
   document.getElementById('inputGallery').value = '';

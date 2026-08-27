@@ -1,15 +1,16 @@
 // ─── Gemini API Integration ───────────────────────────────────────────────────
 
 // ─── Dynamic Model Resolution ─────────────────────────────────────────────────
-// Fetches the list of supported models from the API at runtime so the app
-// never needs a hardcoded model name. Results are cached per API key for the
-// duration of the browser session.
+// Fetches the list of supported models from the API at runtime so the model
+// picker on the scan page is always up to date instead of a hardcoded list.
+// Results are cached per API key for the duration of the browser session.
 const _modelCache = {};   // { [apiKey]: string[] }
 
 /**
- * Returns an ordered list of Gemini flash model IDs to try, newest first.
- * Calls ListModels API on first use; subsequent calls use the in-memory cache.
- * Falls back to a safe default if the API is unreachable.
+ * Returns an ordered list of Gemini flash model IDs, newest first, for the
+ * user to pick from in the model dropdown. Calls ListModels API on first
+ * use; subsequent calls use the in-memory cache. Falls back to a safe
+ * default list if the API is unreachable.
  */
 async function resolveGeminiModels(apiKey) {
   if (_modelCache[apiKey]) return _modelCache[apiKey];
@@ -160,47 +161,51 @@ Return ONLY this JSON object, no other text:
 
 // ─── Gemini API Client ────────────────────────────────────────────────────────
 const Gemini = {
-  async analyzeReceipt(base64, mimeType = 'image/jpeg') {
+  DEFAULT_MODEL: 'gemini-2.5-flash',
+
+  // Fetches the live list of selectable flash models for the model dropdown.
+  async listModels() {
+    const settings = Storage.getSettings();
+    if (!settings.geminiApiKey) {
+      throw new Error('請先在「設定」頁面填入 Gemini API Key');
+    }
+    return resolveGeminiModels(settings.geminiApiKey);
+  },
+
+  // Analyzes a receipt with exactly ONE model — the one the user picked in
+  // the dropdown (or DEFAULT_MODEL). No automatic fallback to other models:
+  // if this model fails, the caller sees the error and stops.
+  async analyzeReceipt(base64, mimeType = 'image/jpeg', model = this.DEFAULT_MODEL) {
     const settings = Storage.getSettings();
     if (!settings.geminiApiKey) {
       throw new Error('請先在「設定」頁面填入 Gemini API Key');
     }
 
-    const models = await resolveGeminiModels(settings.geminiApiKey);
-    let lastErr;
-    for (const model of models) {
-      try {
-        const result = await this._call(settings.geminiApiKey, model, base64, mimeType);
-        const rate = settings.exchangeRate || 0.21;
-        
-        // Compute Header TWD
-        result.amountTWD = Math.round((result.amountJPY || 0) * rate);
+    const result = await this._call(settings.geminiApiKey, model, base64, mimeType);
+    const rate = settings.exchangeRate || 0.21;
 
-        // Normalize items array (表身明細)
-        if (!Array.isArray(result.items)) {
-          result.items = [];
-        }
+    // Compute Header TWD
+    result.amountTWD = Math.round((result.amountJPY || 0) * rate);
 
-        result.items = result.items.map(it => ({
-          nameZh: it.nameZh || it.name || '商品',
-          nameJa: it.nameJa || it.nameZh || '',
-          amountJPY: Math.round(Number(it.amountJPY) || 0),
-          amountTWD: Math.round((Number(it.amountJPY) || 0) * rate),
-          qty: parseInt(it.qty, 10) || 1
-        }));
-
-        // Summary string for quick views
-        result.itemsSummary = result.items.length > 0
-          ? result.items.map(it => it.nameZh).join(', ')
-          : (typeof result.items === 'string' ? result.items : '');
-
-        return result;
-      } catch (e) {
-        lastErr = e;
-        console.warn(`[Gemini] ${model} failed:`, e.message);
-      }
+    // Normalize items array (表身明細)
+    if (!Array.isArray(result.items)) {
+      result.items = [];
     }
-    throw lastErr || new Error('辨識失敗，請稍後重試');
+
+    result.items = result.items.map(it => ({
+      nameZh: it.nameZh || it.name || '商品',
+      nameJa: it.nameJa || it.nameZh || '',
+      amountJPY: Math.round(Number(it.amountJPY) || 0),
+      amountTWD: Math.round((Number(it.amountJPY) || 0) * rate),
+      qty: parseInt(it.qty, 10) || 1
+    }));
+
+    // Summary string for quick views
+    result.itemsSummary = result.items.length > 0
+      ? result.items.map(it => it.nameZh).join(', ')
+      : (typeof result.items === 'string' ? result.items : '');
+
+    return result;
   },
 
   async _call(apiKey, model, base64, mimeType) {
