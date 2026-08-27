@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jrt-v6';
+const CACHE_NAME = 'jrt-v7';
 const ASSETS = [
   './',
   './index.html',

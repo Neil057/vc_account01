@@ -533,31 +533,33 @@ input, select, button, textarea { font-family: inherit; }
 .detail-meta-label { color: var(--text-muted); font-size: 11px; font-weight: 600; text-transform: uppercase; }
 .detail-meta-val { color: var(--text-primary); font-weight: 500; word-break: break-all; }
 
-/* Table for Line Items (表身) */
+/* Detailed Line Items (表身明細卡片向下展開) */
 .detail-table-title {
   font-size: 12px; font-weight: 700;
   color: var(--secondary); letter-spacing: 0.5px;
-  margin: 12px 0 8px; display: flex; align-items: center; justify-content: space-between;
+  margin: 14px 0 8px; display: flex; align-items: center; justify-content: space-between;
 }
-.items-table {
-  width: 100%; border-collapse: collapse;
-  font-size: 13px;
+.detail-items-container {
+  display: flex; flex-direction: column; gap: 6px;
 }
-.items-table th {
-  text-align: left; padding: 6px 4px;
-  color: var(--text-muted); font-size: 11px; font-weight: 600;
-  border-bottom: 1px solid var(--border-light);
+.detail-item-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--r-md);
+  padding: 10px 12px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
 }
-.items-table th.num-col { text-align: right; }
-.items-table td {
-  padding: 9px 4px; vertical-align: top;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
+.detail-item-info { flex: 1; min-width: 0; }
+.detail-item-zh { font-size: 13.5px; font-weight: 700; color: var(--text-primary); line-height: 1.3; }
+.detail-item-ja { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.detail-item-qty {
+  font-size: 11px; color: var(--text-secondary);
+  background: rgba(255,255,255,0.06); padding: 2px 6px;
+  border-radius: 4px; flex-shrink: 0;
 }
-.items-table tr:last-child td { border-bottom: none; }
-.item-zh { font-weight: 600; color: var(--text-primary); }
-.item-ja { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
-.item-jpy { font-weight: 700; text-align: right; }
-.item-twd { font-size: 11px; color: var(--text-secondary); text-align: right; }
+.detail-item-amount { text-align: right; flex-shrink: 0; }
+.detail-item-jpy { font-size: 15px; font-weight: 800; color: var(--primary-light); }
+.detail-item-twd { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
 
 .history-del {
   width: 32px; height: 32px;

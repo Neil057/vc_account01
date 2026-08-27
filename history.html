@@ -138,50 +138,64 @@ function renderList() {
 
 function renderCard(r) {
   const cat = getCat(r.category);
-  const itemsList = Array.isArray(r.items) ? r.items : [];
-  const itemsSummary = itemsList.length > 0
-    ? itemsList.map(it => it.nameZh).join(', ')
-    : (typeof r.items === 'string' ? r.items : (r.itemsSummary || '—'));
+  const rate = r.exchangeRate || 0.2028;
 
-  // Build items rows for detail table
-  let itemsTableHtml = '';
-  if (itemsList.length > 0) {
-    itemsTableHtml = `
-      <div class="detail-table-title">
-        <span>📋 收據品項明細（${itemsList.length} 項）</span>
-      </div>
-      <table class="items-table">
-        <thead>
-          <tr>
-            <th>品項名稱（中 / 日）</th>
-            <th style="width:36px;text-align:center;">數量</th>
-            <th class="num-col">金額</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${itemsList.map(it => `
-            <tr>
-              <td>
-                <div class="item-zh">${it.nameZh || '商品'}</div>
-                ${it.nameJa ? `<div class="item-ja">${it.nameJa}</div>` : ''}
-              </td>
-              <td style="text-align:center;color:var(--text-secondary);font-size:12px;">×${it.qty || 1}</td>
-              <td class="num-col">
-                <div class="item-jpy">${Format.yen(it.amountJPY)}</div>
-                <div class="item-twd">${Format.twd(it.amountTWD)}</div>
-              </td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    `;
+  let itemsList = [];
+  if (Array.isArray(r.items) && r.items.length > 0) {
+    itemsList = r.items.map(it => ({
+      nameZh: it.nameZh || it.name || '商品',
+      nameJa: it.nameJa || '',
+      qty: it.qty || 1,
+      amountJPY: Number(it.amountJPY) || 0,
+      amountTWD: it.amountTWD !== undefined ? it.amountTWD : Math.round((Number(it.amountJPY) || 0) * rate)
+    }));
   } else {
-    itemsTableHtml = `
-      <div style="padding:10px 0;font-size:13px;color:var(--text-secondary);">
-        品項：${itemsSummary}
-      </div>
-    `;
+    // 兼容舊資料或純字串品項：依逗號拆開向下展開
+    const raw = typeof r.items === 'string' ? r.items : (r.itemsSummary || '');
+    const names = raw.split(/[,，、]/).map(s => s.trim()).filter(Boolean);
+    if (names.length > 0) {
+      const avgJPY = Math.round((r.amountJPY || 0) / names.length);
+      itemsList = names.map(name => ({
+        nameZh: name,
+        nameJa: '',
+        qty: 1,
+        amountJPY: avgJPY,
+        amountTWD: Math.round(avgJPY * rate)
+      }));
+    } else {
+      itemsList = [{
+        nameZh: r.storeName || '消費品項',
+        nameJa: r.storeNameJa || '',
+        qty: 1,
+        amountJPY: r.amountJPY || 0,
+        amountTWD: r.amountTWD || Math.round((r.amountJPY || 0) * rate)
+      }];
+    }
   }
+
+  const itemsSummary = itemsList.map(it => it.nameZh).join(', ');
+
+  const itemsCardsHtml = `
+    <div class="detail-table-title">
+      <span>📋 收據商品明細（共 ${itemsList.length} 項）</span>
+      <span style="font-size:11px;color:var(--text-muted);">匯率: ${rate}</span>
+    </div>
+    <div class="detail-items-container">
+      ${itemsList.map(it => `
+        <div class="detail-item-card">
+          <div class="detail-item-info">
+            <div class="detail-item-zh">${it.nameZh || '商品'}</div>
+            ${it.nameJa ? `<div class="detail-item-ja">${it.nameJa}</div>` : ''}
+          </div>
+          <div class="detail-item-qty">×${it.qty || 1}</div>
+          <div class="detail-item-amount">
+            <div class="detail-item-jpy">${Format.yen(it.amountJPY)}</div>
+            <div class="detail-item-twd">${Format.twd(it.amountTWD)}</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
 
   return `
     <div class="history-item-wrap fade-up" id="rec-${r.id}">
@@ -221,7 +235,7 @@ function renderCard(r) {
           </div>
         </div>
 
-        ${itemsTableHtml}
+        ${itemsCardsHtml}
       </div>
     </div>`;
 }
