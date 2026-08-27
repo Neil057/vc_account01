@@ -1,12 +1,55 @@
 // ─── Gemini API Integration ───────────────────────────────────────────────────
 
-const GEMINI_MODELS = [
-  'gemini-3.6-flash',
-  'gemini-3.5-flash',
-  'gemini-3.0-flash',
-  'gemini-2.5-flash',
-  'gemini-2.0-flash',
-];
+// ─── Dynamic Model Resolution ─────────────────────────────────────────────────
+// Fetches the list of supported models from the API at runtime so the app
+// never needs a hardcoded model name. Results are cached per API key for the
+// duration of the browser session.
+const _modelCache = {};   // { [apiKey]: string[] }
+
+/**
+ * Returns an ordered list of Gemini flash model IDs to try, newest first.
+ * Calls ListModels API on first use; subsequent calls use the in-memory cache.
+ * Falls back to a safe default if the API is unreachable.
+ */
+async function resolveGeminiModels(apiKey) {
+  if (_modelCache[apiKey]) return _modelCache[apiKey];
+
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}&pageSize=100`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`ListModels HTTP ${res.status}`);
+    const data = await res.json();
+
+    // Keep only models that support generateContent and contain "flash"
+    const flashModels = (data.models || [])
+      .filter(m =>
+        Array.isArray(m.supportedGenerationMethods) &&
+        m.supportedGenerationMethods.includes('generateContent') &&
+        m.name.includes('flash') &&
+        !m.name.includes('lite')   // exclude lite variants (lower quality)
+      )
+      .map(m => m.name.replace('models/', ''));  // strip "models/" prefix
+
+    // Sort by version numbers descending (e.g. 2.5 > 2.0 > 1.5)
+    flashModels.sort((a, b) => {
+      const toNum = s => {
+        const m = s.match(/gemini-(\d+)\.(\d+)/);
+        return m ? parseFloat(`${m[1]}.${m[2].padStart(3, '0')}`) : 0;
+      };
+      return toNum(b) - toNum(a);
+    });
+
+    if (flashModels.length === 0) throw new Error('No flash models found');
+    console.info('[Gemini] Available flash models:', flashModels);
+    _modelCache[apiKey] = flashModels;
+    return flashModels;
+  } catch (e) {
+    console.warn('[Gemini] ListModels failed, using fallback:', e.message);
+    const fallback = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+    _modelCache[apiKey] = fallback;
+    return fallback;
+  }
+}
 
 // ─── Prompt (精心設計的15條日本稅制規則 + 表頭表身明細結構) ───────────────────
 const RECEIPT_PROMPT = `You are an expert Japanese receipt (レシート) analyzer. Carefully examine this receipt image and return ONLY a valid JSON object with no markdown formatting.
@@ -123,8 +166,9 @@ const Gemini = {
       throw new Error('請先在「設定」頁面填入 Gemini API Key');
     }
 
+    const models = await resolveGeminiModels(settings.geminiApiKey);
     let lastErr;
-    for (const model of GEMINI_MODELS) {
+    for (const model of models) {
       try {
         const result = await this._call(settings.geminiApiKey, model, base64, mimeType);
         const rate = settings.exchangeRate || 0.21;
