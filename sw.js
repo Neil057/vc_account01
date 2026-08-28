@@ -33,7 +33,9 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// Fetch: cache-first for local assets, network-first for API calls
+// Fetch: network-first for local assets (always serve the latest code when
+// online; no need to remember bumping CACHE_NAME for updates to show up),
+// falling back to cache only when offline. API calls always go to network.
 self.addEventListener('fetch', event => {
   const url = event.request.url;
 
@@ -43,8 +45,14 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Local assets → cache first, fallback to network
+  // Local assets → network first, update cache, fallback to cache when offline
   event.respondWith(
-    caches.match(event.request).then(cached => cached || fetch(event.request))
+    fetch(event.request)
+      .then(res => {
+        const resClone = res.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(event.request, resClone));
+        return res;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
