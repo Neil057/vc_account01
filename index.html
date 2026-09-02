@@ -3,13 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#090e1a">
+  <meta name="theme-color" content="#eceef4">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>日本收據記帳</title>
   <meta name="description" content="AI 自動辨識日文收據，一拍即記帳。日本旅行記帳神器。">
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
+  <script src="js/theme.js"></script>
 </head>
 <body>
 <div class="page" id="app">
@@ -20,7 +21,10 @@
       <div class="page-title">🇯🇵 記帳</div>
       <div class="page-subtitle" id="headerDate"></div>
     </div>
-    <a href="history.html" class="header-icon-btn" title="查看記錄">📋</a>
+    <div style="display:flex;gap:8px;">
+      <button class="header-icon-btn theme-toggle-btn" id="btnTheme" title="切換深淺色"></button>
+      <a href="history.html" class="header-icon-btn" title="查看記錄">📋</a>
+    </div>
   </div>
 
   <!-- Budget Hero Card -->
@@ -44,11 +48,11 @@
   <!-- Today + Trip Stats -->
   <div class="stats-grid">
     <div class="stat-card">
-      <div class="stat-val text-primary-col" id="todayJPY">¥0</div>
+      <div class="stat-val" id="todayJPY">¥0</div>
       <div class="stat-lbl">今日支出</div>
     </div>
     <div class="stat-card">
-      <div class="stat-val" id="recordCount" style="color:var(--secondary)">0</div>
+      <div class="stat-val" id="recordCount">0</div>
       <div class="stat-lbl">記錄筆數</div>
     </div>
   </div>
@@ -84,7 +88,7 @@
 <!-- Setup Banner (if no API key) -->
 <div id="setupBanner" class="hidden" style="
   position:fixed;top:0;left:0;right:0;
-  background:linear-gradient(135deg,#7c3aed,#be185d);
+  background:linear-gradient(135deg,#7c3aed 0%,#6366f1 55%,#3b82f6 100%);
   padding:12px 16px; text-align:center;
   font-size:14px;font-weight:600;color:white;
   z-index:200;cursor:pointer;">
@@ -96,6 +100,15 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   renderNav('home');
+
+  // 深淺色快速切換（長按不需要，單擊即在淺 ⇄ 深之間切換）
+  const btnTheme = document.getElementById('btnTheme');
+  const syncThemeIcon = () => {
+    btnTheme.textContent = Theme.resolved() === 'dark' ? '☀️' : '🌙';
+  };
+  syncThemeIcon();
+  btnTheme.onclick = () => { Theme.toggle(); syncThemeIcon(); };
+  document.addEventListener('themechange', syncThemeIcon);
 
   // Setup check
   const s = Storage.getSettings();

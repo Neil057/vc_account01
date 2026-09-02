@@ -2,12 +2,13 @@
 
 // ── Category Config ───────────────────────────────────────────────────────────
 const CATEGORIES = {
-  '餐飲': { icon: '🍱', cls: 'cat-food',      color: '#f472b6' },
-  '交通': { icon: '🚆', cls: 'cat-transport', color: '#818cf8' },
-  '購物': { icon: '🛍️', cls: 'cat-shopping',  color: '#fbbf24' },
-  '門票': { icon: '🎫', cls: 'cat-ticket',    color: '#34d399' },
-  '住宿': { icon: '🏨', cls: 'cat-hotel',     color: '#fb923c' },
-  '藥品': { icon: '💊', cls: 'cat-medicine',  color: '#f87171' },
+  // color: 圖表長條用色（Finexa 紫藍色系）；cls: 圖示底色（淺色 tint）
+  '餐飲': { icon: '🍱', cls: 'cat-food',      color: '#7c3aed' },
+  '交通': { icon: '🚆', cls: 'cat-transport', color: '#6366f1' },
+  '購物': { icon: '🛍️', cls: 'cat-shopping',  color: '#a855f7' },
+  '門票': { icon: '🎫', cls: 'cat-ticket',    color: '#3b82f6' },
+  '住宿': { icon: '🏨', cls: 'cat-hotel',     color: '#0ea5e9' },
+  '藥品': { icon: '💊', cls: 'cat-medicine',  color: '#8b5cf6' },
   '其他': { icon: '📦', cls: 'cat-other',     color: '#94a3b8' },
 };
 
@@ -189,12 +190,13 @@ function confirm2(msg) {
   return new Promise(resolve => {
     const overlay = document.createElement('div');
     overlay.style.cssText = `
-      position:fixed;inset:0;background:rgba(9,14,26,0.85);
+      position:fixed;inset:0;background:rgba(20,22,28,0.45);
       backdrop-filter:blur(8px);display:flex;align-items:center;
       justify-content:center;z-index:600;padding:24px;`;
     overlay.innerHTML = `
-      <div style="background:var(--bg-card);border:1px solid var(--border);
-        border-radius:20px;padding:28px 24px;max-width:320px;width:100%;text-align:center;">
+      <div style="background:var(--bg-card);border:1px solid var(--border-light);
+        box-shadow:var(--shadow-elevated);
+        border-radius:26px;padding:28px 24px;max-width:320px;width:100%;text-align:center;">
         <div style="font-size:24px;margin-bottom:12px;">⚠️</div>
         <div style="font-size:15px;font-weight:600;margin-bottom:8px;">${msg}</div>
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:24px;">此操作無法復原</div>

@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#090e1a">
+  <meta name="theme-color" content="#eceef4">
   <title>統計分析 — 日本記帳</title>
   <link rel="stylesheet" href="style.css">
+  <script src="js/theme.js"></script>
 </head>
 <body>
 <div class="page">
@@ -39,19 +40,19 @@
   <!-- Quick Stats -->
   <div class="stats-grid">
     <div class="stat-card">
-      <div class="stat-val text-primary-col" id="avgDaily">¥0</div>
+      <div class="stat-val" id="avgDaily">¥0</div>
       <div class="stat-lbl">日均花費</div>
     </div>
     <div class="stat-card">
-      <div class="stat-val" style="color:var(--secondary)" id="todaySpend">¥0</div>
+      <div class="stat-val" id="todaySpend">¥0</div>
       <div class="stat-lbl">今日花費</div>
     </div>
     <div class="stat-card">
-      <div class="stat-val" style="color:var(--success)" id="topCat">—</div>
+      <div class="stat-val" id="topCat">—</div>
       <div class="stat-lbl">最高消費類別</div>
     </div>
     <div class="stat-card">
-      <div class="stat-val" style="color:var(--accent)" id="totalRecords">0</div>
+      <div class="stat-val" id="totalRecords">0</div>
       <div class="stat-lbl">記帳筆數</div>
     </div>
   </div>
@@ -157,7 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Payment data
   const byPayment = Storage.getByPayment();
   const payEntries = Object.entries(byPayment).sort(([,a],[,b]) => b - a);
-  const payColors  = { '現金':'#f472b6','信用卡':'#818cf8','Suica':'#34d399','PayPay':'#fbbf24','其他':'#94a3b8' };
+  const payColors  = { '現金':'#7c3aed','信用卡':'#6366f1','Suica':'#3b82f6','PayPay':'#0ea5e9','其他':'#94a3b8' };
 
   if (payEntries.length > 0) {
     const maxPay = payEntries[0][1];
@@ -240,8 +241,8 @@ function drawDailyChart(entries) {
 
     // Gradient
     const grad = ctx.createLinearGradient(0, y, 0, padT + chartH);
-    grad.addColorStop(0, 'rgba(244,114,182,0.9)');
-    grad.addColorStop(1, 'rgba(129,140,248,0.6)');
+    grad.addColorStop(0, 'rgba(124,58,237,0.95)');
+    grad.addColorStop(1, 'rgba(59,130,246,0.55)');
     ctx.fillStyle = grad;
 
     // Rounded top
@@ -257,8 +258,9 @@ function drawDailyChart(entries) {
     ctx.fill();
   });
 
-  // Labels
-  ctx.fillStyle = 'rgba(143,168,204,0.7)';
+  // Labels（顏色取自 CSS 變數，深淺色主題都適用）
+  const css = getComputedStyle(document.documentElement);
+  ctx.fillStyle = css.getPropertyValue('--text-secondary').trim() || '#6b7280';
   ctx.font      = `${Math.max(9, Math.min(11, Math.floor(barGap * 0.55)))}px Inter, sans-serif`;
   ctx.textAlign = 'center';
   entries.forEach(([, ], i) => {
@@ -267,7 +269,7 @@ function drawDailyChart(entries) {
   });
 
   // Baseline
-  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.strokeStyle = css.getPropertyValue('--track').trim() || '#eceef4';
   ctx.lineWidth   = 1;
   ctx.beginPath();
   ctx.moveTo(padL, padT + chartH);

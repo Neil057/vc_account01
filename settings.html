@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#090e1a">
+  <meta name="theme-color" content="#eceef4">
   <title>設定 — 日本記帳</title>
   <link rel="stylesheet" href="style.css">
+  <script src="js/theme.js"></script>
 </head>
 <body>
 <div class="page">
@@ -15,6 +16,24 @@
     <div>
       <div class="page-title">⚙️ 設定</div>
       <div class="page-subtitle">API、預算、匯率設定</div>
+    </div>
+  </div>
+
+  <!-- ── Appearance ─────────────────────────────────────── -->
+  <div class="settings-group">
+    <div class="settings-group-title">🎨 外觀</div>
+    <div class="settings-card">
+      <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:10px;">
+        <div>
+          <div class="settings-row-label">主題色彩</div>
+          <div class="settings-row-hint" id="themeHint">跟隨系統設定</div>
+        </div>
+        <div class="seg" id="themeSeg">
+          <button type="button" class="seg-btn" data-theme-mode="light">☀️ 淺色</button>
+          <button type="button" class="seg-btn" data-theme-mode="dark">🌙 深色</button>
+          <button type="button" class="seg-btn" data-theme-mode="system">🖥️ 跟隨系統</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -163,6 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderNav('settings');
   loadSettings();
   loadLiveBotRate();
+  initThemeSeg();
 
   // API Key toggle
   const keyInput = document.getElementById('apiKey');
@@ -182,6 +202,33 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('exchangeRate').addEventListener('input', updateRatePreview);
   document.getElementById('budget').addEventListener('input', updateBudgetPreview);
 });
+
+// ── 主題切換（淺色 / 深色 / 跟隨系統）─────────────────────
+function initThemeSeg() {
+  const seg = document.getElementById('themeSeg');
+  syncThemeSeg();
+  seg.addEventListener('click', e => {
+    const btn = e.target.closest('.seg-btn');
+    if (!btn) return;
+    Theme.set(btn.dataset.themeMode);
+    syncThemeSeg();
+    const label = { light:'淺色', dark:'深色', system:'跟隨系統' }[Theme.get()];
+    showToast(`已切換為${label}主題`, 'success', 1800);
+  });
+  // 跟隨系統時，系統色變更要即時更新說明文字
+  document.addEventListener('themechange', syncThemeSeg);
+}
+
+function syncThemeSeg() {
+  const mode = Theme.get();
+  document.querySelectorAll('#themeSeg .seg-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.themeMode === mode);
+  });
+  document.getElementById('themeHint').textContent =
+    mode === 'system'
+      ? `跟隨系統設定（目前為${Theme.resolved() === 'dark' ? '深色' : '淺色'}）`
+      : (mode === 'dark' ? '固定使用深色' : '固定使用淺色');
+}
 
 async function loadLiveBotRate() {
   const rateText = document.getElementById('liveBotRateText');

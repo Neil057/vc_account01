@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jrt-v9';
+const CACHE_NAME = 'jrt-v11';
 const ASSETS = [
   './',
   './index.html',
@@ -9,6 +9,7 @@ const ASSETS = [
   './stats.html',
   './settings.html',
   './style.css',
+  './js/theme.js',
   './js/app.js',
   './js/storage.js',
   './js/gemini.js',
