@@ -25,8 +25,13 @@
       <div class="page-title">🇯🇵 記帳</div>
       <div class="page-subtitle" id="headerDate"></div>
     </div>
-    <div style="display:flex;gap:8px;">
-      <button class="header-icon-btn theme-toggle-btn" id="btnTheme" title="切換深淺色"></button>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="theme-switch" id="btnTheme" role="switch" aria-checked="false"
+              title="切換深淺色" aria-label="切換深淺色">
+        <span class="theme-switch-knob"></span>
+        <span class="theme-switch-ico theme-switch-sun">☀️</span>
+        <span class="theme-switch-ico theme-switch-moon">🌙</span>
+      </button>
       <a href="history.html" class="header-icon-btn" title="查看記錄">📋</a>
     </div>
   </div>
@@ -49,42 +54,104 @@
     </div>
   </div>
 
-  <!-- Today + Trip Stats -->
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-val" id="todayJPY">¥0</div>
-      <div class="stat-lbl">今日支出</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-val" id="recordCount">0</div>
-      <div class="stat-lbl">記錄筆數</div>
-    </div>
+  <!-- Tabs -->
+  <div class="home-tabs" role="tablist">
+    <button class="home-tab active" id="tabOverview" data-tab="overview" role="tab">總覽</button>
+    <button class="home-tab"        id="tabAnalysis" data-tab="analysis" role="tab">分析</button>
   </div>
 
-  <!-- Quick Actions -->
-  <div class="quick-actions">
-    <a href="scan.html" class="qa-btn qa-btn-primary" id="btn-scan">
-      <span class="qa-icon">📷</span>
-      <span class="qa-label">拍照記帳</span>
-    </a>
-    <a href="add.html" class="qa-btn qa-btn-secondary" id="btn-add">
-      <span class="qa-icon">✏️</span>
-      <span class="qa-label">手動輸入</span>
-    </a>
-  </div>
+  <!-- ─── Overview ─────────────────────────────────────── -->
+  <div id="paneOverview">
 
-  <!-- Recent Records -->
-  <div class="section-hdr">
-    <span class="section-title">最近記錄</span>
-    <a href="history.html" class="section-link">查看全部 →</a>
-  </div>
-
-  <div class="card" style="padding:8px 16px;" id="recentList">
-    <div class="empty">
-      <div class="empty-icon">🧾</div>
-      <div class="empty-text">還沒有記錄</div>
-      <div class="empty-hint">拍張收據開始記帳吧！</div>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-val" id="todayJPY">¥0</div>
+        <div class="stat-lbl">今日支出</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="recordCount">0</div>
+        <div class="stat-lbl">記錄筆數</div>
+      </div>
     </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+      <a href="scan.html" class="qa-btn qa-btn-primary" id="btn-scan">
+        <span class="qa-icon">📷</span>
+        <span class="qa-label">拍照記帳</span>
+      </a>
+      <a href="add.html" class="qa-btn qa-btn-secondary" id="btn-add">
+        <span class="qa-icon">✏️</span>
+        <span class="qa-label">手動輸入</span>
+      </a>
+    </div>
+
+    <!-- Recent Records -->
+    <div class="section-hdr">
+      <span class="section-title">最近記錄</span>
+      <a href="history.html" class="section-link">查看全部 →</a>
+    </div>
+
+    <div class="card" style="padding:8px 16px;" id="recentList">
+      <div class="empty">
+        <div class="empty-icon">🧾</div>
+        <div class="empty-text">還沒有記錄</div>
+        <div class="empty-hint">拍張收據開始記帳吧！</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ─── Analysis ─────────────────────────────────────── -->
+  <div id="paneAnalysis" class="hidden">
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-val" id="avgDaily">¥0</div>
+        <div class="stat-lbl">日均花費</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="topCat">—</div>
+        <div class="stat-lbl">最高消費類別</div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">📅 每日支出趨勢</div>
+      <canvas id="dailyChart" height="160"></canvas>
+      <div class="empty hidden" id="dailyEmpty" style="padding:32px;">
+        <div class="empty-icon">📅</div>
+        <div class="empty-text">沒有資料</div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">🏷️ 類別分布</div>
+      <div id="catBars"></div>
+      <div class="empty hidden" id="catEmpty" style="padding:32px;">
+        <div class="empty-icon">🏷️</div>
+        <div class="empty-text">沒有資料</div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">💳 支付方式</div>
+      <div id="payBars"></div>
+      <div class="empty hidden" id="payEmpty" style="padding:32px;">
+        <div class="empty-icon">💳</div>
+        <div class="empty-text">沒有資料</div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">🏆 TOP 5 消費</div>
+      <div id="top5List"></div>
+      <div class="empty hidden" id="top5Empty" style="padding:32px;">
+        <div class="empty-icon">🏆</div>
+        <div class="empty-text">沒有資料</div>
+      </div>
+    </div>
+
   </div>
 
 </div>
@@ -105,14 +172,15 @@
 document.addEventListener('DOMContentLoaded', () => {
   renderNav('home');
 
-  // 深淺色快速切換（長按不需要，單擊即在淺 ⇄ 深之間切換）
+  // 深淺色快速切換：外觀是左右撥的開關，操作仍是單擊即切換。
+  // aria-checked 同時驅動 CSS（滑塊位置、非當前模式的 icon 降飽和）和無障礙狀態。
   const btnTheme = document.getElementById('btnTheme');
-  const syncThemeIcon = () => {
-    btnTheme.textContent = Theme.resolved() === 'dark' ? '☀️' : '🌙';
+  const syncThemeSwitch = () => {
+    btnTheme.setAttribute('aria-checked', Theme.resolved() === 'dark' ? 'true' : 'false');
   };
-  syncThemeIcon();
-  btnTheme.onclick = () => { Theme.toggle(); syncThemeIcon(); };
-  document.addEventListener('themechange', syncThemeIcon);
+  syncThemeSwitch();
+  btnTheme.onclick = () => { Theme.toggle(); syncThemeSwitch(); };
+  document.addEventListener('themechange', syncThemeSwitch);
 
   // Setup check
   const s = Storage.getSettings();
@@ -134,6 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const total    = Storage.getTotalSpending();
   const today    = Storage.getTodaySpending();
   const budget   = settings.budget || 0;
+  const days     = Storage.getDayCount();
 
   // Budget card
   document.getElementById('totalJPY').textContent = total.toLocaleString();
@@ -160,7 +229,193 @@ document.addEventListener('DOMContentLoaded', () => {
   if (recent.length > 0) {
     list.innerHTML = `<div class="records-list">${recent.map(renderRow).join('')}</div>`;
   }
+
+  // ── Analysis pane ───────────────────────────────────────────────────────────
+  // Everything except the daily chart is cheap, so build it now; the canvas
+  // needs a laid-out parent to measure, so it waits until the pane is visible.
+  buildAnalysis(records, total, days);
+
+  document.getElementById('tabOverview').onclick = () => showTab('overview');
+  document.getElementById('tabAnalysis').onclick = () => showTab('analysis');
+  // stats.html redirects here with #analysis, so honour the hash on load
+  if (window.location.hash === '#analysis') showTab('analysis');
 });
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+let _dailyEntries = null;   // null until buildAnalysis has run
+let _chartDrawn   = false;
+
+function showTab(name) {
+  const analysis = name === 'analysis';
+  document.getElementById('paneOverview').classList.toggle('hidden',  analysis);
+  document.getElementById('paneAnalysis').classList.toggle('hidden', !analysis);
+  document.getElementById('tabOverview').classList.toggle('active', !analysis);
+  document.getElementById('tabAnalysis').classList.toggle('active',  analysis);
+
+  // The canvas can only be sized once its parent is actually laid out — while
+  // the pane is hidden clientWidth is 0 and the chart would draw blank.
+  if (analysis && !_chartDrawn && _dailyEntries && _dailyEntries.length > 0) {
+    drawDailyChart(_dailyEntries);
+    _chartDrawn = true;
+  }
+}
+
+// Re-measure on rotate / resize, and repaint when the theme flips (the axis
+// labels and baseline are read from CSS variables), but only while visible.
+function redrawChartIfVisible() {
+  if (_chartDrawn && !document.getElementById('paneAnalysis').classList.contains('hidden')) {
+    drawDailyChart(_dailyEntries);
+  }
+}
+window.addEventListener('resize', redrawChartIfVisible);
+document.addEventListener('themechange', redrawChartIfVisible);
+
+// ── Analysis ──────────────────────────────────────────────────────────────────
+function buildAnalysis(records, total, days) {
+  document.getElementById('avgDaily').textContent =
+    days > 0 ? Format.yen(Math.round(total / days)) : '¥0';
+
+  // Category breakdown
+  const catEntries = Object.entries(Storage.getByCategory()).sort(([,a],[,b]) => b - a);
+  if (catEntries.length > 0) {
+    const [topName] = catEntries[0];
+    document.getElementById('topCat').textContent = getCatIcon(topName) + ' ' + topName;
+
+    const maxCat = catEntries[0][1];
+    document.getElementById('catBars').innerHTML = catEntries.map(([cat, amt]) => `
+      <div class="cat-bar">
+        <span class="cat-bar-em">${getCatIcon(cat)}</span>
+        <span class="cat-bar-name">${cat}</span>
+        <div class="cat-bar-track">
+          <div class="cat-bar-fill" style="width:${(amt/maxCat*100).toFixed(1)}%;background:${getCatColor(cat)}"></div>
+        </div>
+        <span class="cat-bar-val">${Format.yen(amt)}</span>
+      </div>`).join('');
+  } else {
+    document.getElementById('catBars').classList.add('hidden');
+    document.getElementById('catEmpty').classList.remove('hidden');
+  }
+
+  // Payment methods
+  const payEntries = Object.entries(Storage.getByPayment()).sort(([,a],[,b]) => b - a);
+  if (payEntries.length > 0) {
+    const payColors = { '現金':'#7c3aed','信用卡':'#6366f1','Suica':'#3b82f6','PayPay':'#0ea5e9','其他':'#94a3b8' };
+    const payIcons  = { '現金':'💴','信用卡':'💳','Suica':'🚇','PayPay':'📱','其他':'🔄' };
+    const maxPay    = payEntries[0][1];
+    document.getElementById('payBars').innerHTML = payEntries.map(([pay, amt]) => `
+      <div class="cat-bar">
+        <span class="cat-bar-em">${payIcons[pay] || '💳'}</span>
+        <span class="cat-bar-name">${pay}</span>
+        <div class="cat-bar-track">
+          <div class="cat-bar-fill" style="width:${(amt/maxPay*100).toFixed(1)}%;background:${payColors[pay]||'#94a3b8'}"></div>
+        </div>
+        <span class="cat-bar-val">${Format.yen(amt)}</span>
+      </div>`).join('');
+  } else {
+    document.getElementById('payBars').classList.add('hidden');
+    document.getElementById('payEmpty').classList.remove('hidden');
+  }
+
+  // Top 5
+  const top5 = [...records].sort((a,b) => (b.amountJPY||0) - (a.amountJPY||0)).slice(0, 5);
+  if (top5.length > 0) {
+    const medals = ['🥇','🥈','🥉','4️⃣','5️⃣'];
+    document.getElementById('top5List').innerHTML = top5.map((r, i) => {
+      const cat = getCat(r.category);
+      const itemsSummary = Array.isArray(r.items) && r.items.length > 0
+        ? r.items.map(it => it.nameZh).join(', ')
+        : (typeof r.items === 'string' ? r.items : (r.itemsSummary || ''));
+      return `
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 0;${i < top5.length-1 ? 'border-bottom:1px solid var(--border-light);' : ''}">
+        <span style="font-size:20px;flex-shrink:0;">${medals[i]}</span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${cat.icon} ${r.storeName || '（未知）'}</div>
+          <div style="font-size:12px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${itemsSummary ? itemsSummary + ' · ' : ''}${Format.dateShort(r.date)}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:16px;font-weight:800;">${Format.yen(r.amountJPY)}</div>
+          <div style="font-size:11px;color:var(--text-secondary);">${Format.twd(r.amountTWD)}</div>
+        </div>
+      </div>`;
+    }).join('');
+  } else {
+    document.getElementById('top5List').classList.add('hidden');
+    document.getElementById('top5Empty').classList.remove('hidden');
+  }
+
+  // Daily chart data — drawn lazily by showTab()
+  _dailyEntries = Object.entries(Storage.getByDay());
+  if (_dailyEntries.length === 0) {
+    document.getElementById('dailyChart').classList.add('hidden');
+    document.getElementById('dailyEmpty').classList.remove('hidden');
+  }
+}
+
+function drawDailyChart(entries) {
+  const canvas = document.getElementById('dailyChart');
+  const dpr    = window.devicePixelRatio || 1;
+  const W      = canvas.parentElement.clientWidth - 40; // 20px padding each side
+  const H      = 160;
+  if (W <= 0) return;   // pane not laid out yet
+
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);   // absolute, so redraws don't compound
+  ctx.clearRect(0, 0, W, H);
+
+  const vals   = entries.map(([, v]) => v);
+  const labels = entries.map(([d]) => Format.dateShort(d));
+  const maxVal = Math.max(...vals) || 1;
+
+  const padL = 8, padR = 8, padT = 16, padB = 32;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+  const barW   = Math.min(Math.floor(chartW / entries.length) - 4, 32);
+  const barGap = chartW / entries.length;
+
+  entries.forEach(([, val], i) => {
+    const x  = padL + i * barGap + (barGap - barW) / 2;
+    const bH = Math.max((val / maxVal) * chartH, 2);
+    const y  = padT + chartH - bH;
+
+    const grad = ctx.createLinearGradient(0, y, 0, padT + chartH);
+    grad.addColorStop(0, 'rgba(124,58,237,0.95)');
+    grad.addColorStop(1, 'rgba(59,130,246,0.55)');
+    ctx.fillStyle = grad;
+
+    const r2 = Math.min(4, barW/2);
+    ctx.beginPath();
+    ctx.moveTo(x + r2, y);
+    ctx.lineTo(x + barW - r2, y);
+    ctx.arcTo(x + barW, y, x + barW, y + r2, r2);
+    ctx.lineTo(x + barW, padT + chartH);
+    ctx.lineTo(x, padT + chartH);
+    ctx.arcTo(x, y, x + r2, y, 0);
+    ctx.closePath();
+    ctx.fill();
+  });
+
+  // Labels（顏色取自 CSS 變數，深淺色主題都適用）
+  const css = getComputedStyle(document.documentElement);
+  ctx.fillStyle = css.getPropertyValue('--text-secondary').trim() || '#6b7280';
+  ctx.font      = `${Math.max(9, Math.min(11, Math.floor(barGap * 0.55)))}px Inter, sans-serif`;
+  ctx.textAlign = 'center';
+  entries.forEach((_, i) => {
+    ctx.fillText(labels[i], padL + i * barGap + barGap / 2, H - 10);
+  });
+
+  // Baseline
+  ctx.strokeStyle = css.getPropertyValue('--track').trim() || '#eceef4';
+  ctx.lineWidth   = 1;
+  ctx.beginPath();
+  ctx.moveTo(padL, padT + chartH);
+  ctx.lineTo(W - padR, padT + chartH);
+  ctx.stroke();
+}
 
 function renderRow(r) {
   const cat = getCat(r.category);

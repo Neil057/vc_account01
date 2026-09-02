@@ -947,6 +947,65 @@ input, select, button, textarea { font-family: inherit; }
 /* 標題列上的快速切換鈕 */
 .theme-toggle-btn { font-size: 16px; }
 
+/* ─── Theme Switch (header) ──────────────────────────────
+   Reads as a left/right slider, but it's still a single button: one tap
+   flips it. Both icons stay visible; the inactive one is desaturated
+   rather than hidden, so the two modes are always readable.            */
+.theme-switch {
+  position: relative; box-sizing: border-box;
+  width: 66px; height: 34px; padding: 0;
+  border-radius: var(--r-full);
+  background: var(--pill-bg);
+  border: 1px solid var(--border);
+  cursor: pointer; flex-shrink: 0;
+  transition: background 0.25s, border-color 0.25s;
+}
+.theme-switch:active { border-color: var(--primary-light); }
+.theme-switch-knob {
+  position: absolute; top: 2px; left: 2px;
+  width: 30px; height: 28px;
+  border-radius: var(--r-full);
+  background: var(--bg-card);
+  box-shadow: 0 1px 3px rgba(16,24,40,0.20);
+  transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+}
+/* aria-checked="true" == dark mode, knob slides right */
+.theme-switch[aria-checked="true"] .theme-switch-knob { transform: translateX(30px); }
+.theme-switch-ico {
+  position: absolute; top: 0; bottom: 0; width: 32px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; line-height: 1; z-index: 1;
+  pointer-events: none;
+  transition: filter 0.25s, opacity 0.25s;
+}
+.theme-switch-sun  { left: 0; }
+.theme-switch-moon { right: 0; }
+/* Dim the mode you're not in */
+.theme-switch[aria-checked="false"] .theme-switch-moon,
+.theme-switch[aria-checked="true"]  .theme-switch-sun {
+  filter: saturate(0.12) contrast(0.85);
+  opacity: 0.4;
+}
+
+/* ─── Home Tabs (總覽 / 分析) ────────────────────────── */
+.home-tabs {
+  display: flex; gap: 4px;
+  background: var(--pill-bg);
+  border-radius: var(--r-full);
+  padding: 4px; margin: 4px 0 14px;
+}
+.home-tab {
+  flex: 1; border: none; background: none;
+  padding: 9px 0; border-radius: var(--r-full);
+  font-size: 14px; font-weight: 600;
+  color: var(--text-secondary); cursor: pointer;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+}
+.home-tab.active {
+  background: var(--bg-card); color: var(--ink);
+  box-shadow: var(--shadow-card);
+}
+
 /* ─── Toast ──────────────────────────────────────────── */
 .toast {
   position: fixed;

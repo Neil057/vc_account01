@@ -170,11 +170,11 @@ function hideLoading() {
 
 // ── Bottom Navigation ─────────────────────────────────────────────────────────
 function renderNav(active) {
+  // 統計已併入首頁的「分析」分頁，所以導覽列只留四格
   const items = [
     { id:'home',     href:'index.html',    icon:'🏠', lbl:'首頁' },
     { id:'scan',     href:'scan.html',     icon:'📷', lbl:'掃描' },
     { id:'history',  href:'history.html',  icon:'📋', lbl:'記錄' },
-    { id:'stats',    href:'stats.html',    icon:'📊', lbl:'統計' },
     { id:'settings', href:'settings.html', icon:'⚙️', lbl:'設定' },
   ];
   const nav = document.createElement('nav');
