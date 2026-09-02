@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#eceef4">
+  <!-- Tells Chromium-based browsers (Samsung Internet, Chrome) that this site
+       handles dark mode itself, so their auto-dark feature stops force-inverting
+       the light palette. -->
+  <meta name="color-scheme" content="light dark">
   <title>掃描收據 — 日本記帳</title>
   <link rel="stylesheet" href="style.css">
   <script src="js/theme.js"></script>
@@ -63,6 +67,9 @@
   <div class="cam-overlay hidden" id="cameraView">
     <video class="cam-video" id="camVideo" playsinline autoplay muted></video>
     <div class="cam-hint">將收據放平，對準畫面後拍攝</div>
+    <div class="cam-subbar">
+      <button class="cam-link" id="camNative">改用手機內建相機 App</button>
+    </div>
     <div class="cam-bar">
       <button class="cam-btn" id="camCancel">取消</button>
       <button class="cam-shutter" id="camShutter" aria-label="拍照"></button>
@@ -127,6 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('camShutter').onclick = takePhoto;
   document.getElementById('camCancel').onclick  = closeCamera;
   document.getElementById('camSwitch').onclick  = switchCamera;
+  document.getElementById('camNative').onclick  = useNativeCamera;
   document.getElementById('btnOpenExternal').onclick = openInExternalBrowser;
   document.getElementById('btnCopyLink').onclick     = copyPageLink;
 
@@ -269,6 +277,14 @@ async function openCamera() {
 function closeCamera() {
   stopStream();
   document.getElementById('cameraView').classList.add('hidden');
+}
+
+// Hands off to the phone's own camera app for anyone who prefers its UI
+// (zoom, flash, HDR). Outside an in-app browser Android and iOS honour the
+// capture hint and open the camera directly.
+function useNativeCamera() {
+  closeCamera();
+  document.getElementById('inputCamera').click();
 }
 
 async function switchCamera() {
