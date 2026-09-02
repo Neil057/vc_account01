@@ -663,6 +663,27 @@ input, select, button, textarea { font-family: inherit; }
   cursor: pointer; flex: 0 0 auto;
 }
 .cam-shutter:active { transform: scale(0.92); }
+/* ─── In-App Browser Notice ──────────────────────────── */
+.inapp-warn {
+  background: var(--danger-soft);
+  border: 1px solid rgba(220,38,38,0.22);
+  border-radius: var(--r-2xl);
+  padding: 14px 16px; margin: 12px 0;
+  transition: box-shadow 0.25s;
+}
+.inapp-warn.flash { box-shadow: 0 0 0 3px rgba(220,38,38,0.28); }
+.inapp-warn-title {
+  font-size: 14px; font-weight: 700; color: var(--danger);
+  margin-bottom: 6px;
+}
+.inapp-warn-body {
+  font-size: 13px; line-height: 1.6; color: var(--text-secondary);
+}
+.inapp-warn-actions {
+  display: flex; gap: 8px; margin-top: 12px;
+}
+.inapp-warn-actions .btn { flex: 1; }
+
 .cam-hint {
   position: absolute; top: calc(14px + env(safe-area-inset-top));
   left: 50%; transform: translateX(-50%);
@@ -904,11 +925,15 @@ input, select, button, textarea { font-family: inherit; }
   left: 50%; transform: translateX(-50%) translateY(80px);
   background: var(--ink);
   border: 1px solid var(--ink);
-  border-radius: var(--r-full);
-  padding: 12px 22px;
+  border-radius: 18px;
+  padding: 12px 20px;
   font-size: 14px; font-weight: 600; color: var(--on-ink);
   box-shadow: var(--shadow-elevated);
-  z-index: 300; white-space: nowrap;
+  z-index: 300;
+  /* Long messages must wrap instead of being clipped off-screen */
+  max-width: min(calc(100vw - 28px), 420px);
+  text-align: center; line-height: 1.45;
+  overflow-wrap: break-word;
   transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
   pointer-events: none;
 }

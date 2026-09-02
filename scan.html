@@ -20,6 +20,19 @@
     </div>
   </div>
 
+  <!-- In-app browser notice (shown only inside LINE/FB/IG webviews) -->
+  <div class="inapp-warn hidden" id="inAppWarn">
+    <div class="inapp-warn-title">⚠️ 目前在 App 內建瀏覽器</div>
+    <div class="inapp-warn-body">
+      LINE、Facebook 等 App 的內建瀏覽器不允許網頁使用相機，「拍照」只會開啟圖片資料夾。<br>
+      請改用 Chrome / Safari 開啟本頁，或先用手機相機拍好，再用「選圖片」上傳。
+    </div>
+    <div class="inapp-warn-actions">
+      <button class="btn btn-secondary btn-sm" id="btnOpenExternal">用瀏覽器開啟</button>
+      <button class="btn btn-secondary btn-sm" id="btnCopyLink">複製連結</button>
+    </div>
+  </div>
+
   <!-- Drop / Preview Zone -->
   <div class="scan-drop" id="dropZone">
     <div class="scan-placeholder" id="placeholder">
@@ -114,6 +127,11 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('camShutter').onclick = takePhoto;
   document.getElementById('camCancel').onclick  = closeCamera;
   document.getElementById('camSwitch').onclick  = switchCamera;
+  document.getElementById('btnOpenExternal').onclick = openInExternalBrowser;
+  document.getElementById('btnCopyLink').onclick     = copyPageLink;
+
+  // Warn up front rather than after a failed 拍照 tap
+  if (isInAppBrowser()) document.getElementById('inAppWarn').classList.remove('hidden');
   document.getElementById('inputCamera').onchange  = e => handleFile(e.target.files[0]);
   document.getElementById('inputGallery').onchange = e => handleFile(e.target.files[0]);
   document.getElementById('btnAnalyze').onclick = analyze;
@@ -140,29 +158,65 @@ function cameraSupported() {
   return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
 }
 
-// Turns a getUserMedia failure into something the user can act on. On a phone
-// the usual causes are an iOS home-screen PWA (no camera access before iOS
-// 16.4) and in-app browsers (LINE/Facebook/Instagram) — both report
-// NotAllowedError, exactly like a real permission denial.
-function cameraErrorHint(e) {
-  const inApp = /Line\/|FBAN|FBAV|FB_IAB|Instagram|MicroMessenger/i.test(navigator.userAgent);
-  const standalone = window.navigator.standalone === true ||
-                     window.matchMedia('(display-mode: standalone)').matches;
+// LINE, Facebook, Instagram and WeChat webviews block getUserMedia outright,
+// and they also ignore the file input's capture hint — so there the 拍照
+// button can only ever open a picture folder. Detect them up front and point
+// the user at a real browser instead of failing twice.
+function isInAppBrowser() {
+  return /\bLine\/|FBAN|FBAV|FB_IAB|FB4A|Instagram|MicroMessenger/i.test(navigator.userAgent);
+}
 
+function isStandalone() {
+  return window.navigator.standalone === true ||
+         window.matchMedia('(display-mode: standalone)').matches;
+}
+
+// Turns a getUserMedia failure into something the user can act on. An iOS
+// home-screen PWA (no camera before iOS 16.4) and an in-app browser both
+// report NotAllowedError, exactly like a real permission denial.
+function cameraErrorHint(e) {
   switch (e.name) {
     case 'NotAllowedError':
     case 'SecurityError':
-      if (inApp)      return 'App 內建瀏覽器不允許網頁使用相機，請改用 Safari / Chrome 開啟，已改用系統相機';
-      if (standalone) return '從主畫面開啟時無法直接使用相機，請改用 Safari / Chrome 開啟網址，已改用系統相機';
-      return '相機權限被拒絕，請點網址列鎖頭圖示 → 相機 → 允許，已改用系統相機';
+      if (isInAppBrowser()) return 'App 內建瀏覽器不允許使用相機，請改用 Chrome / Safari 開啟本頁';
+      if (isStandalone())   return '從主畫面開啟時無法使用相機，請改用 Chrome / Safari 開啟網址';
+      return '相機權限被拒絕，請點網址列鎖頭圖示 → 權限 → 相機 → 允許';
     case 'NotFoundError':
     case 'OverconstrainedError':
       return '找不到相機裝置，已改用系統相機';
     case 'NotReadableError':
-      return '相機被其他 App 佔用，請關閉後重試，已改用系統相機';
+      return '相機被其他 App 佔用，請關閉後重試';
     default:
       return '無法開啟相機（' + e.name + '），已改用系統相機';
   }
+}
+
+// LINE honours ?openExternalBrowser=1 by handing the URL to the system
+// browser. Other webviews ignore it and simply reload in place, which is why
+// the 複製連結 button is offered alongside.
+function openInExternalBrowser() {
+  const url = new URL(window.location.href);
+  url.searchParams.set('openExternalBrowser', '1');
+  window.location.href = url.toString();
+}
+
+async function copyPageLink() {
+  const url = window.location.href.split('?')[0];
+  try {
+    await navigator.clipboard.writeText(url);
+    showToast('連結已複製，請貼到 Chrome / Safari 開啟', 'success', 4000);
+  } catch (e) {
+    showToast('複製失敗，請手動複製網址列的連結', 'error', 4000);
+  }
+}
+
+// Draws attention to the notice when 拍照 can't possibly work here
+function flashInAppWarn() {
+  const warn = document.getElementById('inAppWarn');
+  warn.classList.remove('hidden');
+  warn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  warn.classList.add('flash');
+  setTimeout(() => warn.classList.remove('flash'), 1200);
 }
 
 async function startStream() {
@@ -185,6 +239,14 @@ function stopStream() {
 }
 
 async function openCamera() {
+  // In LINE/FB/IG the file input only ever opens a picture folder, so don't
+  // pretend otherwise — send the user to a real browser.
+  if (isInAppBrowser()) {
+    showToast('App 內建瀏覽器無法使用相機，請改用 Chrome / Safari', 'error', 5000);
+    flashInAppWarn();
+    return;
+  }
+
   // No camera API (http:// page or a locked-down webview), or getUserMedia has
   // already failed here → go straight to the system camera app.
   if (!cameraSupported() || camFallback) {
