@@ -110,6 +110,18 @@ async function fetchLiveBotExchangeRate() {
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
 let _toastTimer;
+let _toastDismiss;
+
+function hideToast() {
+  const el = document.getElementById('_toast');
+  if (el) el.classList.remove('show');
+  clearTimeout(_toastTimer);
+  if (_toastDismiss) {
+    document.removeEventListener('pointerdown', _toastDismiss, true);
+    _toastDismiss = null;
+  }
+}
+
 function showToast(msg, type = '', duration = 3000) {
   let el = document.getElementById('_toast');
   if (!el) {
@@ -121,8 +133,20 @@ function showToast(msg, type = '', duration = 3000) {
   el.textContent = msg;
   el.className   = `toast ${type}`;
   el.classList.add('show');
+
   clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => el.classList.remove('show'), duration);
+  _toastTimer = setTimeout(hideToast, duration);
+
+  // Tapping anywhere dismisses it early. The toast itself keeps
+  // pointer-events: none so it never swallows a tap meant for the page.
+  // Registered on the next frame so the very tap that raised the toast
+  // doesn't immediately close it again.
+  if (_toastDismiss) document.removeEventListener('pointerdown', _toastDismiss, true);
+  _toastDismiss = null;
+  requestAnimationFrame(() => {
+    _toastDismiss = () => hideToast();
+    document.addEventListener('pointerdown', _toastDismiss, { capture: true, once: true });
+  });
 }
 
 // ── Loading Overlay ───────────────────────────────────────────────────────────

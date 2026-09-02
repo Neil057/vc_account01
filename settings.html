@@ -57,7 +57,21 @@
             autocomplete="off" spellcheck="false"
             style="padding-right:48px;"
           >
-          <button class="input-suffix" id="toggleKey" type="button" title="顯示/隱藏">👁️</button>
+          <button class="input-suffix" id="toggleKey" type="button"
+                  title="顯示 API Key" aria-label="顯示 API Key">
+            <!-- Open eye: shown while the key is hidden (tap to reveal) -->
+            <svg class="icon-eye" id="iconEyeOpen" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/>
+              <circle cx="12" cy="12" r="2.75"/>
+            </svg>
+            <!-- Closed eye: shown while the key is visible (tap to hide) -->
+            <svg class="icon-eye hidden" id="iconEyeOff" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 9.5s3.1 5 8 5 8-5 8-5"/>
+              <path d="M12 14.5V17"/>
+              <path d="M7.4 13.4 5.8 15.6"/>
+              <path d="M16.6 13.4l1.6 2.2"/>
+            </svg>
+          </button>
         </div>
         <div style="display:flex;gap:8px;width:100%;">
           <button class="btn btn-primary btn-sm" id="saveApiKey" style="flex:1;">儲存 API Key</button>
@@ -190,8 +204,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // API Key toggle
   const keyInput = document.getElementById('apiKey');
-  document.getElementById('toggleKey').onclick = () => {
-    keyInput.type = keyInput.type === 'password' ? 'text' : 'password';
+  const btnToggleKey = document.getElementById('toggleKey');
+  btnToggleKey.onclick = () => {
+    const reveal = keyInput.type === 'password';
+    keyInput.type = reveal ? 'text' : 'password';
+    // The icon shows the action, not the state: an open eye means "tap to
+    // reveal", a closed eye means "tap to hide".
+    document.getElementById('iconEyeOpen').classList.toggle('hidden', reveal);
+    document.getElementById('iconEyeOff').classList.toggle('hidden', !reveal);
+    const label = reveal ? '隱藏 API Key' : '顯示 API Key';
+    btnToggleKey.title = label;
+    btnToggleKey.setAttribute('aria-label', label);
   };
 
   // Save handlers

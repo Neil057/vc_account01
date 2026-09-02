@@ -588,10 +588,22 @@ input, select, button, textarea { font-family: inherit; }
 /* API Key field */
 .input-wrapper { position: relative; }
 .input-suffix {
-  position: absolute; right: 14px; top: 50%;
+  position: absolute; right: 10px; top: 50%;
   transform: translateY(-50%);
   background: none; border: none;
   color: var(--text-muted); cursor: pointer; font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 6px; border-radius: var(--r-sm);
+  line-height: 0;
+}
+.input-suffix:active { background: var(--bg-secondary); }
+/* Plain line icon rather than an emoji, so it inherits the text colour and
+   stays consistent between light and dark themes. */
+.icon-eye {
+  width: 20px; height: 20px;
+  fill: none; stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round; stroke-linejoin: round;
 }
 
 /* ─── Scan Page ──────────────────────────────────────── */
@@ -939,7 +951,10 @@ input, select, button, textarea { font-family: inherit; }
 .toast {
   position: fixed;
   bottom: calc(var(--nav-height) + var(--safe-bottom) + 14px);
-  left: 50%; transform: translateX(-50%) translateY(80px);
+  /* Hidden state fades out rather than sliding away: a fixed translate can't
+     be trusted to clear the viewport once the toast wraps to several lines. */
+  left: 50%; transform: translateX(-50%) translateY(14px);
+  opacity: 0; visibility: hidden;
   background: var(--ink);
   border: 1px solid var(--ink);
   border-radius: 18px;
@@ -951,10 +966,15 @@ input, select, button, textarea { font-family: inherit; }
   max-width: min(calc(100vw - 28px), 420px);
   text-align: center; line-height: 1.45;
   overflow-wrap: break-word;
-  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  transition: opacity 0.28s ease,
+              transform 0.28s cubic-bezier(0.4,0,0.2,1),
+              visibility 0.28s;
   pointer-events: none;
 }
-.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1; visibility: visible;
+}
 .toast.success { background: var(--success-soft); border-color: rgba(22,163,74,0.2);  color: var(--success); }
 .toast.error   { background: var(--danger-soft);  border-color: rgba(220,38,38,0.2);  color: var(--danger);  }
 .toast.info    { background: var(--secondary-soft); border-color: rgba(59,130,246,0.2); color: var(--secondary); }
