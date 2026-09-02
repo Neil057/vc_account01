@@ -132,9 +132,37 @@ document.addEventListener('DOMContentLoaded', () => {
 // input only when getUserMedia is unavailable or denied.
 let camStream = null;
 let camFacing = 'environment';
+// Set once getUserMedia has failed on this device, so the next 拍照 tap goes
+// straight to the system camera app instead of failing again.
+let camFallback = false;
 
 function cameraSupported() {
   return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+}
+
+// Turns a getUserMedia failure into something the user can act on. On a phone
+// the usual causes are an iOS home-screen PWA (no camera access before iOS
+// 16.4) and in-app browsers (LINE/Facebook/Instagram) — both report
+// NotAllowedError, exactly like a real permission denial.
+function cameraErrorHint(e) {
+  const inApp = /Line\/|FBAN|FBAV|FB_IAB|Instagram|MicroMessenger/i.test(navigator.userAgent);
+  const standalone = window.navigator.standalone === true ||
+                     window.matchMedia('(display-mode: standalone)').matches;
+
+  switch (e.name) {
+    case 'NotAllowedError':
+    case 'SecurityError':
+      if (inApp)      return 'App 內建瀏覽器不允許網頁使用相機，請改用 Safari / Chrome 開啟，已改用系統相機';
+      if (standalone) return '從主畫面開啟時無法直接使用相機，請改用 Safari / Chrome 開啟網址，已改用系統相機';
+      return '相機權限被拒絕，請點網址列鎖頭圖示 → 相機 → 允許，已改用系統相機';
+    case 'NotFoundError':
+    case 'OverconstrainedError':
+      return '找不到相機裝置，已改用系統相機';
+    case 'NotReadableError':
+      return '相機被其他 App 佔用，請關閉後重試，已改用系統相機';
+    default:
+      return '無法開啟相機（' + e.name + '），已改用系統相機';
+  }
 }
 
 async function startStream() {
@@ -157,8 +185,9 @@ function stopStream() {
 }
 
 async function openCamera() {
-  if (!cameraSupported()) {
-    // No camera API (http:// page, or an in-app webview) → use the file input
+  // No camera API (http:// page or a locked-down webview), or getUserMedia has
+  // already failed here → go straight to the system camera app.
+  if (!cameraSupported() || camFallback) {
     document.getElementById('inputCamera').click();
     return;
   }
@@ -167,12 +196,11 @@ async function openCamera() {
     document.getElementById('cameraView').classList.remove('hidden');
   } catch (e) {
     stopStream();
-    if (e.name === 'NotAllowedError' || e.name === 'SecurityError') {
-      showToast('相機權限被拒絕，請在瀏覽器設定中允許使用相機', 'error', 4000);
-    } else {
-      // No camera device, or it's in use elsewhere → fall back to file input
-      document.getElementById('inputCamera').click();
-    }
+    camFallback = true;
+    showToast(cameraErrorHint(e), 'error', 5000);
+    // Try the system camera right away. iOS may drop this click because the
+    // await consumed the user gesture — camFallback makes the next tap work.
+    document.getElementById('inputCamera').click();
   }
 }
 
