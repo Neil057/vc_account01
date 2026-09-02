@@ -41,9 +41,21 @@
     </button>
   </div>
 
-  <!-- Hidden file inputs -->
+  <!-- Hidden file inputs (inputCamera is only the fallback when getUserMedia
+       is unavailable, e.g. non-HTTPS or an in-app webview without permission) -->
   <input type="file" id="inputCamera" accept="image/*" capture="environment" style="display:none">
   <input type="file" id="inputGallery" accept="image/*" style="display:none">
+
+  <!-- Live camera overlay -->
+  <div class="cam-overlay hidden" id="cameraView">
+    <video class="cam-video" id="camVideo" playsinline autoplay muted></video>
+    <div class="cam-hint">將收據放平，對準畫面後拍攝</div>
+    <div class="cam-bar">
+      <button class="cam-btn" id="camCancel">取消</button>
+      <button class="cam-shutter" id="camShutter" aria-label="拍照"></button>
+      <button class="cam-btn" id="camSwitch">切換鏡頭</button>
+    </div>
+  </div>
 
   <!-- Tips -->
   <div class="card mt-16" style="padding:14px 16px;">
@@ -97,8 +109,11 @@ document.addEventListener('DOMContentLoaded', () => {
   renderNav('scan');
 
   // Bind buttons
-  document.getElementById('btnCamera').onclick  = () => document.getElementById('inputCamera').click();
+  document.getElementById('btnCamera').onclick  = openCamera;
   document.getElementById('btnUpload').onclick  = () => document.getElementById('inputGallery').click();
+  document.getElementById('camShutter').onclick = takePhoto;
+  document.getElementById('camCancel').onclick  = closeCamera;
+  document.getElementById('camSwitch').onclick  = switchCamera;
   document.getElementById('inputCamera').onchange  = e => handleFile(e.target.files[0]);
   document.getElementById('inputGallery').onchange = e => handleFile(e.target.files[0]);
   document.getElementById('btnAnalyze').onclick = analyze;
@@ -109,6 +124,93 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!selectedFile) document.getElementById('inputGallery').click();
   };
 });
+
+// ─── Live camera (getUserMedia) ────────────────────────────
+// The file input's capture="environment" attribute is only a hint: desktop
+// browsers ignore it and some Android pickers still show a file chooser. So
+// the 拍照 button drives a real camera stream and falls back to the file
+// input only when getUserMedia is unavailable or denied.
+let camStream = null;
+let camFacing = 'environment';
+
+function cameraSupported() {
+  return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+}
+
+async function startStream() {
+  stopStream();
+  camStream = await navigator.mediaDevices.getUserMedia({
+    video: { facingMode: { ideal: camFacing }, width: { ideal: 1920 } },
+    audio: false
+  });
+  const video = document.getElementById('camVideo');
+  video.srcObject = camStream;
+  await video.play().catch(() => {});
+}
+
+function stopStream() {
+  if (camStream) {
+    camStream.getTracks().forEach(t => t.stop());
+    camStream = null;
+  }
+  document.getElementById('camVideo').srcObject = null;
+}
+
+async function openCamera() {
+  if (!cameraSupported()) {
+    // No camera API (http:// page, or an in-app webview) → use the file input
+    document.getElementById('inputCamera').click();
+    return;
+  }
+  try {
+    await startStream();
+    document.getElementById('cameraView').classList.remove('hidden');
+  } catch (e) {
+    stopStream();
+    if (e.name === 'NotAllowedError' || e.name === 'SecurityError') {
+      showToast('相機權限被拒絕，請在瀏覽器設定中允許使用相機', 'error', 4000);
+    } else {
+      // No camera device, or it's in use elsewhere → fall back to file input
+      document.getElementById('inputCamera').click();
+    }
+  }
+}
+
+function closeCamera() {
+  stopStream();
+  document.getElementById('cameraView').classList.add('hidden');
+}
+
+async function switchCamera() {
+  camFacing = camFacing === 'environment' ? 'user' : 'environment';
+  try {
+    await startStream();
+  } catch (e) {
+    showToast('無法切換鏡頭', 'error');
+  }
+}
+
+function takePhoto() {
+  const video = document.getElementById('camVideo');
+  const w = video.videoWidth, h = video.videoHeight;
+  if (!w || !h) { showToast('相機還在啟動中，請稍候', 'error'); return; }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  canvas.getContext('2d').drawImage(video, 0, 0, w, h);
+  closeCamera();
+
+  canvas.toBlob(blob => {
+    if (!blob) { showToast('拍照失敗，請重試', 'error'); return; }
+    handleFile(new File([blob], `receipt-${Date.now()}.jpg`, { type: 'image/jpeg' }));
+  }, 'image/jpeg', 0.92);
+}
+
+// Release the camera if the page is hidden or unloaded
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && camStream) closeCamera();
+});
+window.addEventListener('pagehide', stopStream);
 
 async function handleFile(file) {
   if (!file) return;
