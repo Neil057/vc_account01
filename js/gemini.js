@@ -16,8 +16,10 @@ async function resolveGeminiModels(apiKey) {
   if (_modelCache[apiKey]) return _modelCache[apiKey];
 
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}&pageSize=100`;
-    const res = await fetch(url);
+    // The key goes in a header, never in the query string: a URL ends up in
+    // browser history, the Referer header and any proxy/CDN log along the way.
+    const url = 'https://generativelanguage.googleapis.com/v1beta/models?pageSize=100';
+    const res = await fetch(url, { headers: { 'x-goog-api-key': apiKey } });
     if (!res.ok) throw new Error(`ListModels HTTP ${res.status}`);
     const data = await res.json();
 
@@ -209,7 +211,8 @@ const Gemini = {
   },
 
   async _call(apiKey, model, base64, mimeType) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    // Key travels in the x-goog-api-key header below, not in the URL.
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
     const res = await fetch(url, {
       method: 'POST',
       headers: {

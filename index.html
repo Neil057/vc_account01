@@ -2,6 +2,11 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
+  <!-- CSP as a meta tag because GitHub Pages cannot send headers. The Gemini
+       API key sits in localStorage, so connect-src is the part that matters:
+       it stops a compromised page from posting the key anywhere else.
+       'unsafe-inline' stays for now — the pages are full of inline handlers. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://generativelanguage.googleapis.com https://cdn.jsdelivr.net https://tw.rter.info https://open.er-api.com; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#eceef4">
   <!-- Tells Chromium-based browsers (Samsung Internet, Chrome) that this site
@@ -285,7 +290,7 @@ function buildAnalysis(records, total, days) {
     document.getElementById('catBars').innerHTML = catEntries.map(([cat, amt]) => `
       <div class="cat-bar">
         <span class="cat-bar-em">${getCatIcon(cat)}</span>
-        <span class="cat-bar-name">${cat}</span>
+        <span class="cat-bar-name">${esc(cat)}</span>
         <div class="cat-bar-track">
           <div class="cat-bar-fill" style="width:${(amt/maxCat*100).toFixed(1)}%;background:${getCatColor(cat)}"></div>
         </div>
@@ -305,7 +310,7 @@ function buildAnalysis(records, total, days) {
     document.getElementById('payBars').innerHTML = payEntries.map(([pay, amt]) => `
       <div class="cat-bar">
         <span class="cat-bar-em">${payIcons[pay] || '💳'}</span>
-        <span class="cat-bar-name">${pay}</span>
+        <span class="cat-bar-name">${esc(pay)}</span>
         <div class="cat-bar-track">
           <div class="cat-bar-fill" style="width:${(amt/maxPay*100).toFixed(1)}%;background:${payColors[pay]||'#94a3b8'}"></div>
         </div>
@@ -329,8 +334,8 @@ function buildAnalysis(records, total, days) {
       <div style="display:flex;align-items:center;gap:12px;padding:10px 0;${i < top5.length-1 ? 'border-bottom:1px solid var(--border-light);' : ''}">
         <span style="font-size:20px;flex-shrink:0;">${medals[i]}</span>
         <div style="flex:1;min-width:0;">
-          <div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${cat.icon} ${r.storeName || '（未知）'}</div>
-          <div style="font-size:12px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${itemsSummary ? itemsSummary + ' · ' : ''}${Format.dateShort(r.date)}</div>
+          <div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${cat.icon} ${esc(r.storeName || '（未知）')}</div>
+          <div style="font-size:12px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${itemsSummary ? esc(itemsSummary) + ' · ' : ''}${Format.dateShort(r.date)}</div>
         </div>
         <div style="text-align:right;flex-shrink:0;">
           <div style="font-size:16px;font-weight:800;">${Format.yen(r.amountJPY)}</div>
@@ -426,9 +431,9 @@ function renderRow(r) {
     <div class="record-row">
       <div class="rec-icon ${cat.cls}">${cat.icon}</div>
       <div class="rec-info">
-        <div class="rec-store">${r.storeName || '（未知店名）'}</div>
-        <div class="rec-items">${itemsSummary}</div>
-        <div class="rec-meta">${Format.dateShort(r.date)} · ${r.paymentMethod || ''}</div>
+        <div class="rec-store">${esc(r.storeName || '（未知店名）')}</div>
+        <div class="rec-items">${esc(itemsSummary)}</div>
+        <div class="rec-meta">${Format.dateShort(r.date)} · ${esc(r.paymentMethod || '')}</div>
       </div>
       <div class="rec-amount">
         <div class="rec-jpy">${Format.yen(r.amountJPY)}</div>

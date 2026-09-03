@@ -15,6 +15,17 @@ const CATEGORIES = {
 const PAYMENT_METHODS = ['現金', '信用卡', 'Suica', 'PayPay', '其他'];
 const CATEGORY_LIST   = Object.keys(CATEGORIES);
 
+// ── HTML Escaping ─────────────────────────────────────────────────────────────
+// Every string that reaches innerHTML has passed through Gemini (i.e. it came
+// off a receipt photo) or straight from a text field, so it must be escaped
+// before it becomes markup. Without this, a crafted store/item name can inject
+// script and read the API key out of localStorage.
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
 function getCat(cat)      { return CATEGORIES[cat] || CATEGORIES['其他']; }
 function getCatIcon(cat)  { return getCat(cat).icon; }
 function getCatClass(cat) { return getCat(cat).cls; }

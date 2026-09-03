@@ -2,6 +2,8 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
+  <!-- See index.html for why this policy is here and why 'unsafe-inline' stays. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://generativelanguage.googleapis.com https://cdn.jsdelivr.net https://tw.rter.info https://open.er-api.com; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#eceef4">
   <!-- Tells Chromium-based browsers (Samsung Internet, Chrome) that this site
@@ -357,7 +359,7 @@ async function loadModelOptions() {
 
   try {
     const models = await Gemini.listModels();
-    select.innerHTML = models.map(m => `<option value="${m}">${m}</option>`).join('');
+    select.innerHTML = models.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
     select.value = models.includes(Gemini.DEFAULT_MODEL) ? Gemini.DEFAULT_MODEL : models[0];
   } catch (e) {
     // No API key yet, or the list call failed — still let the user proceed

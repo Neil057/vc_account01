@@ -2,6 +2,8 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
+  <!-- See index.html for why this policy is here and why 'unsafe-inline' stays. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://generativelanguage.googleapis.com https://cdn.jsdelivr.net https://tw.rter.info https://open.er-api.com; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#eceef4">
   <!-- Tells Chromium-based browsers (Samsung Internet, Chrome) that this site
@@ -79,7 +81,7 @@ function renderList() {
     container.innerHTML = `
       <div class="empty fade-up">
         <div class="empty-icon">${currentFilter ? getCatIcon(currentFilter) : '🧾'}</div>
-        <div class="empty-text">沒有${currentFilter ? ' ' + currentFilter + ' ' : ''}記錄</div>
+        <div class="empty-text">沒有${currentFilter ? ' ' + esc(currentFilter) + ' ' : ''}記錄</div>
         <div class="empty-hint">去掃描一張收據吧！</div>
       </div>`;
     return;
@@ -189,8 +191,8 @@ function renderCard(r) {
       ${itemsList.map(it => `
         <div class="detail-item-card">
           <div class="detail-item-info">
-            <div class="detail-item-zh">${it.nameZh || '商品'}</div>
-            ${it.nameJa ? `<div class="detail-item-ja">${it.nameJa}</div>` : ''}
+            <div class="detail-item-zh">${esc(it.nameZh || '商品')}</div>
+            ${it.nameJa ? `<div class="detail-item-ja">${esc(it.nameJa)}</div>` : ''}
           </div>
           <div class="detail-item-qty">×${it.qty || 1}</div>
           <div class="detail-item-amount">
@@ -203,19 +205,19 @@ function renderCard(r) {
   `;
 
   return `
-    <div class="history-item-wrap fade-up" id="rec-${r.id}">
+    <div class="history-item-wrap fade-up" id="rec-${esc(r.id)}">
       <div class="history-card">
         <div class="rec-icon ${cat.cls}">${cat.icon}</div>
         <div class="rec-info">
-          <div class="rec-store">${r.storeName || '（未知店名）'}</div>
-          <div class="rec-items">${itemsSummary}</div>
-          <div class="rec-meta">${r.paymentMethod || '現金'} · ${r.taxType || '内税'} · 點擊展開明細 ▾</div>
+          <div class="rec-store">${esc(r.storeName || '（未知店名）')}</div>
+          <div class="rec-items">${esc(itemsSummary)}</div>
+          <div class="rec-meta">${esc(r.paymentMethod || '現金')} · ${esc(r.taxType || '内税')} · 點擊展開明細 ▾</div>
         </div>
         <div class="rec-amount">
           <div class="rec-jpy">${Format.yen(r.amountJPY)}</div>
           <div class="rec-twd">${Format.twd(r.amountTWD)}</div>
         </div>
-        <button class="history-del" data-id="${r.id}" title="刪除">🗑️</button>
+        <button class="history-del" data-id="${esc(r.id)}" title="刪除">🗑️</button>
         <span class="history-chevron">▼</span>
       </div>
 
@@ -224,19 +226,19 @@ function renderCard(r) {
         <div class="detail-meta-grid">
           <div class="detail-meta-item">
             <span class="detail-meta-label">日文店名</span>
-            <span class="detail-meta-val">${r.storeNameJa || '—'}</span>
+            <span class="detail-meta-val">${esc(r.storeNameJa || '—')}</span>
           </div>
           <div class="detail-meta-item">
             <span class="detail-meta-label">支付與稅制</span>
-            <span class="detail-meta-val">${r.paymentMethod || '現金'} (${r.taxType || '内税'})</span>
+            <span class="detail-meta-val">${esc(r.paymentMethod || '現金')} (${esc(r.taxType || '内税')})</span>
           </div>
           <div class="detail-meta-item">
             <span class="detail-meta-label">消費類別</span>
-            <span class="detail-meta-val">${cat.icon} ${r.category || '其他'}</span>
+            <span class="detail-meta-val">${cat.icon} ${esc(r.category || '其他')}</span>
           </div>
           <div class="detail-meta-item">
             <span class="detail-meta-label">備註</span>
-            <span class="detail-meta-val">${r.notes || '無'}</span>
+            <span class="detail-meta-val">${esc(r.notes || '無')}</span>
           </div>
         </div>
 

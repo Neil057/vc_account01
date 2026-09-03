@@ -1,0 +1,12 @@
+# 這個 repo 是公開的 GitHub Pages,以下一律不要進版控
+references/
+skills/
+.claude/
+CLAUDE.md
+
+# 任何可能含金鑰的本機檔案
+.env
+.env.*
+*.local
+*secret*
+*.key
